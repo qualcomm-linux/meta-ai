@@ -188,6 +188,14 @@ def main():
                 r'GIT_TAG\s+([a-f0-9]+)'
             ]
         },
+        'neon2sse': {
+            'files': [
+                'tensorflow/lite/tools/cmake/modules/neon2sse.cmake'
+            ],
+            'patterns': [
+                r'ARM_NEON_2_x86_SSE/archive/([a-f0-9]{40})'
+            ]
+        },
         'fft2d': {
             'special_handling': True,
             'repo_url': 'https://android.googlesource.com/platform/external/fft2d',
