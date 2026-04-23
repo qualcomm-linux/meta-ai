@@ -16,6 +16,7 @@ DEPENDS = "flatbuffers-tflite-native"
 inherit cmake python3native
 
 EXTRA_OECMAKE += " \
+    -DCMAKE_POSITION_INDEPENDENT_CODE=ON \
     -DFLATBUFFERS_BUILD_TESTS=OFF \
     -DFLATBUFFERS_BUILD_SHAREDLIB=ON \
 "
