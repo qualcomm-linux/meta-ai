@@ -112,7 +112,7 @@ SRC_URI:append:class-target:arm = " \
     file://cpuinfo/0002-Support-OE-specific-arm-value-for-CMAKE_SYSTEM_PROCE.patch;patchdir=third_party/cpuinfo \
 "
 
-inherit cmake features_check pkgconfig
+inherit cmake pkgconfig
 
 OECMAKE_SOURCEPATH = "${S}/tensorflow/lite/c"
 OECMAKE_TARGET_COMPILE += "benchmark_model label_image"
