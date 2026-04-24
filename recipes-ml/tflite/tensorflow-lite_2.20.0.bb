@@ -26,6 +26,8 @@ TF_LITE_MINOR = "${@d.getVar('PV').split('.')[1]}"
 TF_LITE_PATCH = "0"
 
 SRCREV_FORMAT = "tensorflow_cpuinfo_farmhash_fft2d_fp16_fxdiv_gemmlowp_kleidiai_mlDtypes_openclHeaders_pthreadpool_ruy_vulkanHeaders_xnnpack"
+SRCREV_FORMAT:append:x86 = "_neon2sse"
+SRCREV_FORMAT:append:x86-64 = "_neon2sse"
 
 # Main TensorFlow repository revision
 SRCREV_tensorflow = "72fbba3d20f4616d7312b5e2b7f79daf6e82f2fa"
@@ -58,6 +60,7 @@ SRCREV_fxdiv = "63058eff77e11aa15bf531df5dd34395ec3017c8"
 SRCREV_gemmlowp = "16e8662c34917be0065110bfcd9cc27d30f52fdf"
 SRCREV_kleidiai = "dc69e899945c412a8ce39ccafd25139f743c60b1"
 SRCREV_mlDtypes = "00d98cd92ade342fef589c0470379abb27baebe9"
+SRCREV_neon2sse = "a15b489e1222b2087007546b4912e21293ea86ff"
 SRCREV_openclHeaders = "dcd5bede6859d26833cd85f0d6bbcee7382dc9b3"
 SRCREV_pthreadpool = "c2ba5c50bb58d1397b693740cf75fad836a0d1bf"
 SRCREV_ruy = "3286a34cc8de6149ac6844107dfdffac91531e72"
@@ -88,6 +91,13 @@ SRC_URI = " \
     git://github.com/ARM-software/kleidiai.git;protocol=https;branch=main;name=kleidiai;destsuffix=${S}/kleidiai \
     git://github.com/google/pthreadpool.git;protocol=https;branch=main;name=pthreadpool;destsuffix=${S}/pthreadpool \
     git://github.com/Maratyszcza/FXdiv.git;protocol=https;branch=master;name=fxdiv;destsuffix=${S}/FXdiv \
+"
+
+SRC_URI:append:class-target:x86 = " \
+    git://github.com/intel/ARM_NEON_2_x86_SSE.git;name=neon2sse;destsuffix=tensorflow-lite-${TF_LITE_VERSION}/third_party/neon2sse/;protocol=https;nobranch=1 \
+"
+SRC_URI:append:class-target:x86-64 = " \
+    git://github.com/intel/ARM_NEON_2_x86_SSE.git;name=neon2sse;destsuffix=tensorflow-lite-${TF_LITE_VERSION}/third_party/neon2sse/;protocol=https;nobranch=1 \
 "
 
 SRC_URI:append:class-target:arm = " \
@@ -143,6 +153,9 @@ do_configure:prepend() {
     ln -sf ${S}/third_party/vulkan_headers vulkan_headers
     ln -sf ${S}/third_party/xnnpack xnnpack
     ln -sf ${S}/fft2d/src/fft2d/fft2d fft2d
+    if [ -d "${S}/third_party/neon2sse" ]; then
+        ln -sf ${S}/third_party/neon2sse neon2sse
+    fi
 
     mkdir -p opengl_headers
     cp ${COMMON_LICENSE_DIR}/Apache-2.0 opengl_headers/opengl_headers_LICENSE.txt
