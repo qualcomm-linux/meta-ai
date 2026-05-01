@@ -47,4 +47,5 @@ local_conf_header:
 machine: unset
 
 target:
+  - llama-cpp
   - tensorflow-lite
