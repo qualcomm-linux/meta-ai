@@ -6,6 +6,7 @@ The goal of this layer is to host AI/ML related recipes that need compilation as
 ## Branches
 
 **main**: Primary development branch. Contributors should develop submissions based on this branch, and submit pull requests to this branch.
+**wrynose**: LTS branch. Submissions should be backports from the main branch.
 
 ## Requirements
 
