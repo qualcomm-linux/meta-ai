@@ -19,6 +19,7 @@ DEPENDS = " \
 "
 
 SRC_URI = "gitsm://github.com/microsoft/onnxruntime.git;protocol=https;branch=rel-${PV};name=ort \
+    file://0001-cmake-fix-GCC-16-build.patch \
     git://github.com/HowardHinnant/date.git;protocol=https;nobranch=1;name=date;tag=v3.0.4;destsuffix=date \
     git://github.com/boostorg/mp11.git;protocol=https;nobranch=1;name=mp11;tag=boost-1.91.0;destsuffix=mp11 \
     git://github.com/pytorch/cpuinfo.git;protocol=https;nobranch=1;name=pytorch_cpuinfo;destsuffix=pytorch_cpuinfo \
