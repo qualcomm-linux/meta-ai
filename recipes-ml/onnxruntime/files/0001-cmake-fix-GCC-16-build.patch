@@ -1,34 +1,24 @@
-From 71d27174d204446c4b74461966e034ce7eaf5a9e Mon Sep 17 00:00:00 2001
+From 27ed4c1275586113e84d4b79b47febcef4c084d3 Mon Sep 17 00:00:00 2001
 From: Koen Kooi <koen.kooi@oss.qualcomm.com>
-Date: Wed, 17 Jun 2026 12:00:00 +0200
-Subject: [PATCH] cmake: fix GCC 16 build (-Wsfinae-incomplete,
- -Wmaybe-uninitialized)
+Date: Thu, 18 Jun 2026 12:00:00 +0200
+Subject: [PATCH] cmake: fix GCC 16 build (-Wmaybe-uninitialized,
+ -Wfree-nonheap-object)
 
-GCC 16 fails the onnxruntime build in two distinct ways, both because
-onnxruntime sets COMPILE_WARNING_AS_ERROR ON (a bare -Werror).
+onnxruntime 1.26.0 builds with C++20 and sets COMPILE_WARNING_AS_ERROR
+ON (a bare -Werror), so two GCC 16 false-positive diagnostics become
+fatal:
 
-1) -Wsfinae-incomplete (new and on by default in GCC 16) fires when a
-   class template (onnxruntime::Tensor, Node, GraphViewer, SparseTensor)
-   is used in a SFINAE context through std::reference_wrapper /
-   _Reference_wrapper_base before it is complete, then later defined.
-   libstdc++'s <functional> (pulled in via onnx/defs/schema.h) triggers
-   exactly this pattern:
+1) -Wmaybe-uninitialized fires in the optimizer, e.g.
+   matmul_nbits_fusion.cc, reading a value GCC 16 cannot prove is
+   initialized. onnxruntime already suppresses this for GCC 12; GCC 16
+   reintroduced the false positive, so extend the same guard to cover
+   GCC >= 16.
 
-     error: defining 'onnxruntime::Tensor', which previously failed to
-     be complete in a SFINAE context [-Werror=sfinae-incomplete=]
-
-   The code is well-formed and the warning is informational about a
-   libstdc++ interaction, so disable it, mirroring the existing handling
-   of -Wno-interference-size and -Wno-dangling-reference. The flag is
-   gated behind check_cxx_compiler_flag so older compilers are
-   unaffected.
-
-2) -Wmaybe-uninitialized false-positives on a read from an
-   absl::InlinedVector that is populated through a helper, e.g.
-   concat_slice_elimination.cc:223 (axes[0], where axes is filled by
-   GetSliceInfo()). onnxruntime already suppresses this warning for
-   GCC 12; GCC 16 reintroduced the false positive, so extend the same
-   guard to cover GCC >= 16.
+2) -Wfree-nonheap-object fires on std::vector destructors, e.g.
+   vector<graph_utils::EdgeEndToMatch> in skip_layer_norm_fusion.cc:
+   GCC 16 mistakes the sized-deallocation of the vector's heap storage
+   for a delete on an offset pointer. Disable it, gated behind
+   check_cxx_compiler_flag.
 
 Upstream-Status: Inappropriate [Newer upstream releases have fixed this issue]
 
@@ -39,39 +29,39 @@ Assisted-by: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
  1 file changed, 12 insertions(+), 1 deletion(-)
 
 diff --git a/cmake/CMakeLists.txt b/cmake/CMakeLists.txt
-index 6d0d395..8e46c19 100644
+index 83d1751..22ae6cf 100644
 --- a/cmake/CMakeLists.txt
 +++ b/cmake/CMakeLists.txt
-@@ -605,6 +605,8 @@ else()
+@@ -632,6 +632,8 @@ else()
    check_cxx_compiler_flag(-Wambiguous-reversed-operator HAS_AMBIGUOUS_REVERSED_OPERATOR)
    # -Winterference-size was added in GCC 13
    check_cxx_compiler_flag(-Winterference-size HAS_INTERFERENCE_SIZE)
-+  # -Wsfinae-incomplete was added in GCC 16
-+  check_cxx_compiler_flag(-Wsfinae-incomplete HAS_SFINAE_INCOMPLETE)
++  # -Wfree-nonheap-object false-positives on std::vector dtors with GCC 16
++  check_cxx_compiler_flag(-Wfree-nonheap-object HAS_FREE_NONHEAP_OBJECT)
    check_cxx_compiler_flag(-Warray-bounds HAS_ARRAY_BOUNDS)
    check_cxx_compiler_flag(-Wbitwise-instead-of-logical HAS_BITWISE_INSTEAD_OF_LOGICAL)
    check_cxx_compiler_flag(-Wcast-function-type HAS_CAST_FUNCTION_TYPE)
-@@ -695,6 +697,12 @@ else()
+@@ -721,6 +723,13 @@ else()
      # Specifically, the code was tuned based on the build machine's CPU cache line size, which can vary a lot.
      list(APPEND ORT_WARNING_FLAGS -Wno-interference-size)
    endif()
-+  if(HAS_SFINAE_INCOMPLETE)
-+    # libstdc++'s <functional> uses several onnxruntime types in a SFINAE
-+    # context (via std::reference_wrapper) before they are complete. The
-+    # code is well-formed; the GCC 16 warning is purely informational.
-+    list(APPEND ORT_WARNING_FLAGS -Wno-sfinae-incomplete)
++  if(HAS_FREE_NONHEAP_OBJECT)
++    # GCC 16 false-positives -Wfree-nonheap-object on std::vector
++    # destructors (e.g. vector<graph_utils::EdgeEndToMatch> in
++    # skip_layer_norm_fusion.cc): it mistakes the sized-deallocation of
++    # heap storage for a delete on an offset pointer.
++    list(APPEND ORT_WARNING_FLAGS -Wno-free-nonheap-object)
 +  endif()
    # enable warning(s) that may not be on by default
    if (HAS_SHORTEN_64_TO_32)
      list(APPEND ORT_WARNING_FLAGS -Wshorten-64-to-32)
-@@ -1163,7 +1171,10 @@ function(onnxruntime_set_compile_flags target_name)
+@@ -1187,7 +1196,9 @@ function(onnxruntime_set_compile_flags target_name)
      foreach(FLAG ${ORT_WARNING_FLAGS})
        target_compile_options(${target_name} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:${FLAG}>")
      endforeach()
 -    if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" AND CMAKE_C_COMPILER_VERSION VERSION_LESS 13 AND CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 12)
-+    # GCC 12 and GCC 16 both emit false-positive -Wmaybe-uninitialized for
-+    # code that reads from an absl::InlinedVector populated through a helper
-+    # (e.g. onnxruntime/core/optimizer/concat_slice_elimination.cc).
++    # GCC 12 and GCC 16 both emit false-positive -Wmaybe-uninitialized in the
++    # optimizer (e.g. matmul_nbits_fusion.cc reads a value GCC cannot prove init).
 +    if("${CMAKE_C_COMPILER_ID}" STREQUAL "GNU" AND ((CMAKE_C_COMPILER_VERSION VERSION_LESS 13 AND CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 12) OR CMAKE_C_COMPILER_VERSION VERSION_GREATER_EQUAL 16))
        target_compile_options(${target_name} PRIVATE "$<$<COMPILE_LANGUAGE:CXX>:-Wno-maybe-uninitialized>")
      endif()
