@@ -1,4 +1,4 @@
-From 42e520631efdb34a1b5093d2d72bc6e4043b923d Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000002 Mon Sep 17 00:00:00 2001
 From: Tushar Darote <quic_tdarote@quicinc.com>
 Date: Thu, 29 Jan 2026 18:54:32 +0530
 Subject: [PATCH 6/9] c: Add version support to C API
@@ -14,7 +14,7 @@ Signed-off-by: Tushar Darote <quic_tdarote@quicinc.com>
  1 file changed, 21 insertions(+), 1 deletion(-)
 
 diff --git a/tensorflow/lite/c/CMakeLists.txt b/tensorflow/lite/c/CMakeLists.txt
-index 9fcafb14495..7d9a5942cab 100644
+index 0000000..0000002 100644
 --- a/tensorflow/lite/c/CMakeLists.txt
 +++ b/tensorflow/lite/c/CMakeLists.txt
 @@ -14,7 +14,22 @@
@@ -53,6 +53,3 @@ index 9fcafb14495..7d9a5942cab 100644
  target_link_libraries(tensorflowlite_c
    tensorflow-lite
  )
--- 
-2.34.1
-

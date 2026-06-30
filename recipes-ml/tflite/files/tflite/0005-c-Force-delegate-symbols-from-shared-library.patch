@@ -1,4 +1,4 @@
-From 12fe5695802d3852c7e67fffcc74f8b3c46698cc Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000001 Mon Sep 17 00:00:00 2001
 From: Tushar Darote <quic_tdarote@quicinc.com>
 Date: Thu, 29 Jan 2026 18:25:22 +0530
 Subject: [PATCH 5/9] c: Force delegate symbols from shared library
@@ -15,10 +15,10 @@ Signed-off-by: Tushar Darote <quic_tdarote@quicinc.com>
  1 file changed, 42 insertions(+)
 
 diff --git a/tensorflow/lite/c/CMakeLists.txt b/tensorflow/lite/c/CMakeLists.txt
-index 931f4372c5f..9fcafb14495 100644
+index 0000000..0000001 100644
 --- a/tensorflow/lite/c/CMakeLists.txt
 +++ b/tensorflow/lite/c/CMakeLists.txt
-@@ -80,10 +80,52 @@ if (TFLITE_C_BUILD_SHARED_LIBS)
+@@ -78,10 +78,52 @@ if (TFLITE_C_BUILD_SHARED_LIBS)
    if (WIN32)
      target_compile_definitions(tensorflowlite_c PRIVATE TFL_COMPILE_LIBRARY)
      target_compile_definitions(tensorflow-lite PRIVATE TFL_COMPILE_LIBRARY)
@@ -71,6 +71,3 @@ index 931f4372c5f..9fcafb14495 100644
    endif()
  endif()
  
--- 
-2.34.1
-

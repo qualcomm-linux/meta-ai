@@ -7,8 +7,8 @@ SECTION = "console/tools"
 LICENSE = "Apache-2.0"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=3b83ef96387f14655fc854ddc3c6bd57"
 
-PV = "24.3.25"
-SRCREV = "595bf0007ab1929570c7671f091313c8fc20644e"
+PV = "25.9.23"
+SRCREV = "187240970746d00bbd26b0f5873ed54d2477f9f3"
 SRC_URI = "git://github.com/google/flatbuffers.git;branch=master;protocol=https;tag=v${PV}"
 
 DEPENDS = "flatbuffers-tflite-native"

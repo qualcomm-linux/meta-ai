@@ -25,7 +25,7 @@ PACKAGECONFIG[gpu] = " \
     opencl-headers virtual/egl virtual/libopencl1 vulkan-headers, \
 "
 
-# TensorFlow Lite version and branch
+# TensorFlow Lite version components derived from PV
 TF_LITE_VERSION = "${PV}"
 TF_LITE_MAJOR = "${@d.getVar('PV').split('.')[0]}"
 TF_LITE_MINOR = "${@d.getVar('PV').split('.')[1]}"
@@ -36,7 +36,7 @@ SRCREV_FORMAT:append:x86 = "_neon2sse"
 SRCREV_FORMAT:append:x86-64 = "_neon2sse"
 
 # Main TensorFlow repository revision
-SRCREV_tensorflow = "72fbba3d20f4616d7312b5e2b7f79daf6e82f2fa"
+SRCREV_tensorflow = "a481b10260dfdf833a1b16007eead49c1d7febf3"
 
 # Third‑party dependency revisions used by TensorFlow Lite
 #
@@ -46,7 +46,7 @@ SRCREV_tensorflow = "72fbba3d20f4616d7312b5e2b7f79daf6e82f2fa"
 #    the latest SRCREV values for all dependencies.
 #
 # 2) Run the script with the target TensorFlow version:
-#    python3 extract_tflite_srcrevs_from_github.py v2.20.0
+#    python3 extract_tflite_srcrevs_from_github.py v2.21.0
 #
 # 3) Replace the SRCREV_* values below with the output from the script.
 #
@@ -58,24 +58,22 @@ SRCREV_tensorflow = "72fbba3d20f4616d7312b5e2b7f79daf6e82f2fa"
 # IMPORTANT: Always use the automated script to ensure SRCREV values match
 #            the exact pinned versions in the TensorFlow repository.
 # Pinned third‑party revisions (automatically generated)
-SRCREV_cpuinfo = "de0ce7c7251372892e53ce9bc891750d2c9a4fd8"
+SRCREV_cpuinfo = "8a9210069b5a37dd89ed118a783945502a30a4ae"
 SRCREV_farmhash = "0d859a811870d10f53a594927d0d0b97573ad06d"
 SRCREV_fft2d = "fa0ad63f8b666836f56a823de546390a6e4ff4b6"
 SRCREV_fp16 = "4dfe081cf6bcd15db339cf2680b9281b8451eeb3"
 SRCREV_fxdiv = "63058eff77e11aa15bf531df5dd34395ec3017c8"
 SRCREV_gemmlowp = "16e8662c34917be0065110bfcd9cc27d30f52fdf"
-SRCREV_kleidiai = "dc69e899945c412a8ce39ccafd25139f743c60b1"
+SRCREV_kleidiai = "63205aa90afa6803d8f58bc3081b69288e9f1906"
 SRCREV_mlDtypes = "00d98cd92ade342fef589c0470379abb27baebe9"
-SRCREV_neon2sse = "a15b489e1222b2087007546b4912e21293ea86ff"
 SRCREV_openclHeaders = "dcd5bede6859d26833cd85f0d6bbcee7382dc9b3"
-SRCREV_pthreadpool = "c2ba5c50bb58d1397b693740cf75fad836a0d1bf"
+SRCREV_pthreadpool = "0e6ca13779b57d397a5ba6bfdcaa8a275bc8ea2e"
 SRCREV_ruy = "3286a34cc8de6149ac6844107dfdffac91531e72"
 SRCREV_vulkanHeaders = "32c07c0c5334aea069e518206d75e002ccd85389"
-SRCREV_xnnpack = "585e73e63cb35c8a416c83a48ca9ab79f7f7d45e"
+SRCREV_xnnpack = "25b42dfddb0ee22170d73ff0d4b333ea1e6edfeb"
 
 SRC_URI = " \
     git://github.com/tensorflow/tensorflow.git;name=tensorflow;nobranch=1;protocol=https;tag=v${TF_LITE_VERSION} \
-    file://tflite/0001-lite-Add-config-option-to-enable-benchmark_model.patch \
     file://tflite/0002-cmake-lite-tools-benchmark-require-protobuf-through-.patch \
     file://tflite/0003-feat-tflite-Use-fixed-OpenCL-library-name-for-compat.patch \
     file://tflite/0004-cmake-Exclude-subdirectories-from-all-builds.patch \
@@ -85,19 +83,19 @@ SRC_URI = " \
     file://tflite/0008-cmake-Add-install-rule-for-c-interface-shared-librar.patch \
     file://tflite/0009-tflite-Add-absl-log-dependency-for-enhanced-logging-.patch \
     file://tflite/0013-tflite-examples-label_image-build-profile_buffer.patch \
-    git://github.com/google/farmhash;name=farmhash;destsuffix=tensorflow-lite-${TF_LITE_VERSION}/third_party/farmhash/;branch=master;protocol=https \
-    git://github.com/google/gemmlowp.git;name=gemmlowp;destsuffix=tensorflow-lite-${TF_LITE_VERSION}/third_party/gemmlowp/;branch=master;protocol=https \
-    git://github.com/pytorch/cpuinfo.git;name=cpuinfo;destsuffix=tensorflow-lite-${TF_LITE_VERSION}/third_party/cpuinfo/;branch=main;protocol=https \
-    git://github.com/jax-ml/ml_dtypes.git;name=mlDtypes;destsuffix=tensorflow-lite-${TF_LITE_VERSION}/third_party/ml_dtypes/;branch=main;protocol=https \
-    git://github.com/google/ruy.git;name=ruy;destsuffix=tensorflow-lite-${TF_LITE_VERSION}/third_party/ruy/;branch=master;protocol=https \
-    git://github.com/KhronosGroup/OpenCL-Headers.git;name=openclHeaders;destsuffix=tensorflow-lite-${TF_LITE_VERSION}/third_party/opencl_headers/;branch=main;protocol=https \
-    git://github.com/KhronosGroup/Vulkan-Headers.git;name=vulkanHeaders;destsuffix=tensorflow-lite-${TF_LITE_VERSION}/third_party/vulkan_headers/;branch=main;protocol=https \
-    git://github.com/google/XNNPACK.git;name=xnnpack;destsuffix=tensorflow-lite-${TF_LITE_VERSION}/third_party/xnnpack/;branch=master;protocol=https \
-    git://android.googlesource.com/platform/external/fft2d.git;name=fft2d;destsuffix=tensorflow-lite-${TF_LITE_VERSION}/fft2d;branch=main;protocol=https \
-    git://github.com/Maratyszcza/FP16.git;protocol=https;branch=master;name=fp16;destsuffix=${S}/FP16 \
-    git://github.com/ARM-software/kleidiai.git;protocol=https;branch=main;name=kleidiai;destsuffix=${S}/kleidiai \
-    git://github.com/google/pthreadpool.git;protocol=https;branch=main;name=pthreadpool;destsuffix=${S}/pthreadpool \
-    git://github.com/Maratyszcza/FXdiv.git;protocol=https;branch=master;name=fxdiv;destsuffix=${S}/FXdiv \
+    git://github.com/google/farmhash;name=farmhash;destsuffix=${S}/third_party/farmhash/;branch=master;protocol=https \
+    git://github.com/google/gemmlowp.git;name=gemmlowp;destsuffix=${S}/third_party/gemmlowp/;branch=master;protocol=https \
+    git://github.com/pytorch/cpuinfo.git;name=cpuinfo;destsuffix=${S}/third_party/cpuinfo/;branch=main;protocol=https \
+    git://github.com/jax-ml/ml_dtypes.git;name=mlDtypes;destsuffix=${S}/third_party/ml_dtypes/;branch=main;protocol=https \
+    git://github.com/google/ruy.git;name=ruy;destsuffix=${S}/third_party/ruy/;branch=master;protocol=https \
+    git://github.com/KhronosGroup/OpenCL-Headers.git;name=openclHeaders;destsuffix=${S}/third_party/opencl_headers/;branch=main;protocol=https \
+    git://github.com/KhronosGroup/Vulkan-Headers.git;name=vulkanHeaders;destsuffix=${S}/third_party/vulkan_headers/;branch=main;protocol=https \
+    git://github.com/google/XNNPACK.git;name=xnnpack;destsuffix=${S}/third_party/xnnpack/;branch=master;protocol=https \
+    git://android.googlesource.com/platform/external/fft2d.git;name=fft2d;destsuffix=${S}/fft2d;branch=main;protocol=https \
+    git://github.com/Maratyszcza/FP16.git;name=fp16;destsuffix=${S}/FP16;branch=master;protocol=https \
+    git://github.com/ARM-software/kleidiai.git;name=kleidiai;destsuffix=${S}/kleidiai;branch=main;protocol=https \
+    git://github.com/google/pthreadpool.git;name=pthreadpool;destsuffix=${S}/pthreadpool;branch=main;protocol=https \
+    git://github.com/Maratyszcza/FXdiv.git;name=fxdiv;destsuffix=${S}/FXdiv;branch=master;protocol=https \
 "
 
 SRC_URI:append:class-target:x86 = " \
@@ -128,6 +126,7 @@ EXTRA_OECMAKE += " \
     -DFXDIV_SOURCE_DIR=${S}/FXdiv \
     -DKLEIDIAI_SOURCE_DIR=${S}/kleidiai \
     -DProtobuf_PROTOC_EXECUTABLE=${STAGING_BINDIR_NATIVE}/protoc \
+    -DTFLITE_C_BUILD_SHARED_LIBS=ON \
     -DTFLITE_ENABLE_BENCHMARK_MODEL=ON \
     -DTFLITE_ENABLE_INSTALL=ON \
     -DTFLITE_ENABLE_LABEL_IMAGE=ON \
@@ -140,6 +139,7 @@ EXTRA_OECMAKE += " \
     -DTF_PATCH_VERSION=${TF_LITE_PATCH} \
     -DTF_VERSION_SUFFIX= \
     -DPTHREADPOOL_SOURCE_DIR=${S}/pthreadpool \
+    -DTENSORFLOW_SOURCE_DIR=${S} \
 "
 
 # Disable ARM BF16 support for clang toolchain builds

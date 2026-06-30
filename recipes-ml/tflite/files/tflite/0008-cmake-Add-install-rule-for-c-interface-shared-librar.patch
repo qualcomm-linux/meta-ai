@@ -1,4 +1,4 @@
-From fc53cdac176fbbd8e283da96c275057caf4e2eae Mon Sep 17 00:00:00 2001
+From 0000000000000000000000000000000000000003 Mon Sep 17 00:00:00 2001
 From: Ivan Evlogiev <ievlogie@qti.qualcomm.com>
 Date: Thu, 22 Jan 2026 16:37:21 +0000
 Subject: [PATCH 8/9] cmake: Add install rule for c interface shared library
@@ -17,10 +17,10 @@ Signed-off-by: Ivan Evlogiev <ievlogie@qti.qualcomm.com>
  create mode 100644 tensorflow/lite/c/tensorflowlite_c.pc.in
 
 diff --git a/tensorflow/lite/CMakeLists.txt b/tensorflow/lite/CMakeLists.txt
-index 2971047b3fc..76dc0637645 100644
+index 0000000..0000003 100644
 --- a/tensorflow/lite/CMakeLists.txt
 +++ b/tensorflow/lite/CMakeLists.txt
-@@ -766,8 +766,8 @@ target_compile_options(tensorflow-lite
+@@ -791,8 +791,8 @@ target_compile_definitions(tensorflow-lite
  )
  add_library(${PROJECT_NAME}::tensorflowlite ALIAS tensorflow-lite)
  
@@ -32,7 +32,7 @@ index 2971047b3fc..76dc0637645 100644
      TARGETS tensorflow-lite
      EXPORT ${PROJECT_NAME}Targets
 diff --git a/tensorflow/lite/c/CMakeLists.txt b/tensorflow/lite/c/CMakeLists.txt
-index 7d9a5942cab..9b7fe9bfe7e 100644
+index 0000000..0000004 100644
 --- a/tensorflow/lite/c/CMakeLists.txt
 +++ b/tensorflow/lite/c/CMakeLists.txt
 @@ -152,3 +152,17 @@ set_target_properties(tensorflowlite_c PROPERTIES
@@ -55,7 +55,7 @@ index 7d9a5942cab..9b7fe9bfe7e 100644
 +endif()
 diff --git a/tensorflow/lite/c/tensorflowlite_c.pc.in b/tensorflow/lite/c/tensorflowlite_c.pc.in
 new file mode 100644
-index 00000000000..42c5f02a8ad
+index 0000000..0000005
 --- /dev/null
 +++ b/tensorflow/lite/c/tensorflowlite_c.pc.in
 @@ -0,0 +1,10 @@
@@ -69,6 +69,3 @@ index 00000000000..42c5f02a8ad
 +Requires:
 +Libs: -L${libdir} -ltensorflowlite_c
 +Cflags: -I${includedir}
--- 
-2.34.1
-
