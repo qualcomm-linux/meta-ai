@@ -25,18 +25,18 @@ SRC_URI = "gitsm://github.com/microsoft/onnxruntime.git;protocol=https;branch=re
     git://github.com/pytorch/cpuinfo.git;protocol=https;nobranch=1;name=pytorch_cpuinfo;destsuffix=pytorch_cpuinfo \
     git://github.com/dcleblanc/SafeInt.git;protocol=https;nobranch=1;name=safeint;tag=3.0.28;destsuffix=safeint \
     git://github.com/google/flatbuffers.git;protocol=https;nobranch=1;name=flatbuffers;tag=v23.5.26;destsuffix=flatbuffers \
-    git://github.com/onnx/onnx.git;protocol=https;nobranch=1;name=onnx;tag=v1.20.1;destsuffix=onnx \
+    git://github.com/onnx/onnx.git;protocol=https;nobranch=1;name=onnx;tag=v1.21.0;destsuffix=onnx \
     git://github.com/eigen-mirror/eigen.git;protocol=https;nobranch=1;name=eigen3;destsuffix=eigen3 \
 "
 
 SRCREV_FORMAT = "ort_date_mp11_pytorch_cpuinfo_safeint_flatbuffers_onnx_eigen3"
-SRCREV_ort              = "470ae16099a74fe05e31f2530489332c0525edb5"
+SRCREV_ort              = "8c546c37b43caaca1fa25db430dab94b901cf277"
 SRCREV_date             = "f94b8f36c6180be0021876c4a397a054fe50c6f2"
 SRCREV_mp11             = "b94b089d4ec83cd397f20958f34edf25bc3e06f4"
 SRCREV_pytorch_cpuinfo  = "ea6b9f1bb6e1001d8b21574d5bc78ddef62e499d"
 SRCREV_safeint          = "4cafc9196c4da9c817992b20f5253ef967685bf8"
 SRCREV_flatbuffers      = "c20d64b8de759423af61e072fcabf916c1f7bf9f"
-SRCREV_onnx             = "d3f6b795aedb48eaecc881bf5e8f5dd6efbe25b3"
+SRCREV_onnx             = "be2b5fde82d9c8874f3d19328bdfe3b6962dc67b"
 SRCREV_eigen3           = "549bf8c75b6aae071cde2f28aa48f16ee3ae60b0"
 
 # Fix buildpaths QA issue: remap TMPDIR references in both debug info and
@@ -50,6 +50,7 @@ OECMAKE_SOURCEPATH = "${S}/cmake"
 
 EXTRA_OECMAKE = " \
     -DCMAKE_BUILD_TYPE=RelWithDebInfo \
+    -DCMAKE_CXX_STANDARD=20 \
     -DCMAKE_FIND_ROOT_PATH=${STAGING_DIR_TARGET} \
     -Donnxruntime_BUILD_SHARED_LIB=ON \
     -DFETCHCONTENT_FULLY_DISCONNECTED=ON \
