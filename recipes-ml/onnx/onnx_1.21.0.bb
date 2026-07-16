@@ -11,7 +11,7 @@ DEPENDS = " \
 "
 
 SRC_URI = "git://github.com/onnx/onnx.git;protocol=https;branch=rel-${PV}"
-SRCREV = "d3f6b795aedb48eaecc881bf5e8f5dd6efbe25b3"
+SRCREV = "be2b5fde82d9c8874f3d19328bdfe3b6962dc67b"
 
 inherit cmake
 
