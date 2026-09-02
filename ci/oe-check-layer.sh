@@ -33,4 +33,5 @@ exec yocto-check-layer \
     meta-ai \
     --no-auto \
     --dependency "$WORK_DIR/oe-core/meta" \
+    --dependency "$WORK_DIR/meta-openembedded/meta-oe" \
     --no-auto-dependency

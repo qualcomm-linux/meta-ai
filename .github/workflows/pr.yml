@@ -14,16 +14,16 @@ permissions:
   contents: read
 
 jobs:
-  event-file:
-    name: "Upload event file"
+  fork-policy:
+    name: Fork build policy
+    if: github.event.pull_request.head.repo.full_name != github.repository
     runs-on: ubuntu-latest
     steps:
-      - name: Upload
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: Event File
-          path: ${{ github.event_path }}
-          if-no-files-found: error
+      - name: Require a repository branch
+        run: |
+          echo "OpenEmbedded builds do not execute fork code on Qualcomm self-hosted runners."
+          echo "A maintainer must reproduce the change on a branch in ${GITHUB_REPOSITORY}."
+          exit 1
 
   pr-to-workflow-dependency:
     name: "PR to workflow dependency"
@@ -38,6 +38,7 @@ jobs:
       pr_number: ${{ github.event.pull_request.number }}
 
   build-pr:
+    if: github.event.pull_request.head.repo.full_name == github.repository
     permissions:
       actions: read
       contents: read

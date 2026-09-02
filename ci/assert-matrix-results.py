@@ -19,9 +19,28 @@ def main() -> int:
         print(f"MATRIX_RESULTS is not valid JSON: {error}", file=sys.stderr)
         return 1
 
-    if not isinstance(results, dict) or not results:
+    if not isinstance(results, dict) or not isinstance(results.get("result"), dict):
+        print("MATRIX_RESULTS must contain a result object.", file=sys.stderr)
+        return 1
+
+    results = results["result"]
+    if not results:
         print("MATRIX_RESULTS must contain at least one job result.", file=sys.stderr)
         return 1
+
+    expected_results = os.environ.get("EXPECTED_RESULTS", "")
+    if expected_results:
+        try:
+            expected_count = int(expected_results)
+        except ValueError:
+            print("EXPECTED_RESULTS must be an integer.", file=sys.stderr)
+            return 1
+        if len(results) != expected_count:
+            print(
+                f"Expected {expected_count} matrix results, received {len(results)}.",
+                file=sys.stderr,
+            )
+            return 1
 
     failed = False
     for job, result in sorted(results.items()):

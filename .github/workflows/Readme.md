@@ -4,7 +4,7 @@ The repository runs policy checks, standalone OpenEmbedded builds and one hardwa
 
 ## Build flow
 
-`pr.yml` and `push.yml` call `build-openembedded.yml`. Build jobs use the `[self-hosted, qcom-u2404, amd64]` project runner pool and reuse `/efs/qli/meta-qcom/downloads` and `/efs/qli/meta-qcom/sstate-cache`. Each job has an isolated temporary build directory; only the OpenEmbedded downloads and sstate caches are shared.
+`pr.yml` and `push.yml` call `build-openembedded.yml`. Build jobs use the `[self-hosted, qcom-u2404, amd64]` project runner pool and reuse `/efs/qli/meta-qcom/downloads` and `/efs/qli/meta-qcom/sstate-cache`. Each job has an isolated temporary build directory; only the OpenEmbedded downloads and sstate caches are shared. Pull requests from forks are rejected because untrusted fork code must not execute on credential-bearing self-hosted runners or write to shared caches; a maintainer must reproduce the change on a repository branch.
 
 The standalone matrix builds every recipe in this layer for `qemuarm`, `qemuarm64` and `qemux86-64` with `DISTRO = "nodistro"`. The RB3 Gen 2 job combines the checked-out meta-ai revision with meta-qcom and meta-qcom-distro, installs the AI runtime packages into `qcom-multimedia-image`, and reuses meta-qcom's compile and private artifact actions.
 
@@ -14,7 +14,7 @@ Kas and cross-repository actions are pinned to reviewed commits. Kas lockfiles p
 
 ## LAVA flow
 
-`test-pr.yml` runs from the default branch after `Build on PR` completes. The pull request build has no LAVA or reporting credentials; the trusted `workflow_run` downloads the original event and build URL artifacts without executing pull request code. It passes only `LAVATOKEN` to `test.yml` and only `TEST_REPORTING_APP_TOKEN` to `publish-results.yml`.
+`test-pr.yml` runs from the default branch after `Build on PR` completes. The pull request build has no LAVA or reporting credentials. The trusted `workflow_run` resolves pull request metadata through the GitHub API, creates its own event artifact, and accepts only a build URL matching the triggering repository, run ID and attempt. It passes only `LAVATOKEN` to `test.yml` and only `TEST_REPORTING_APP_TOKEN` to `publish-results.yml`.
 
 `test.yml` reuses meta-qcom's pinned LAVA-plan and result-summary actions. It boots the RB3 Gen 2 image first, then runs the pinned meta-qcom-distro pre-merge plan. Matrix failures are recorded individually and collapsed into explicit required results, so a skipped or incomplete test cannot appear successful.
 

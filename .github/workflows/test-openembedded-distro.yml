@@ -59,6 +59,7 @@ jobs:
       contents: read
     outputs:
       artifact_id: ${{ steps.lava-test-plans.outputs.artifact_id }}
+      job_count: ${{ steps.require-jobs.outputs.job_count }}
       jobmatrix: ${{ steps.lava-test-plans.outputs.jobmatrix }}
     steps:
       - name: Render boot jobs
@@ -78,13 +79,16 @@ jobs:
           pr_url: ${{ inputs.pr_url }}
 
       - name: Require rendered boot jobs
+        id: require-jobs
         env:
           ARTIFACT_ID: ${{ steps.lava-test-plans.outputs.artifact_id }}
           JOB_MATRIX: ${{ steps.lava-test-plans.outputs.jobmatrix }}
         run: |
           test -n "$ARTIFACT_ID"
           test -n "$JOB_MATRIX"
-          test "$(jq '.target | length' <<< "$JOB_MATRIX")" -gt 0
+          JOB_COUNT=$(jq '.target | length' <<< "$JOB_MATRIX")
+          test "$JOB_COUNT" -gt 0
+          echo "job_count=$JOB_COUNT" >> "$GITHUB_OUTPUT"
 
   submit-boot-job:
     name: Boot ${{ matrix.target.name }}
@@ -121,14 +125,14 @@ jobs:
         uses: qualcomm-linux/github-action-matrix-outputs-write@59fdd8db9c91b623ec1111b9c081435b1533f529 # v3
         with:
           matrix-step-name: submit-boot-job-${{ inputs.distro_name }}
-          matrix-key: ${{ matrix.target.name }}-${{ inputs.distro_name }}
-          artifact-name: submit-boot-job-${{ inputs.distro_name }}-${{ matrix.target.name }}
+          matrix-key: ${{ matrix.target.result_file }}
+          artifact-name: submit-boot-job-${{ inputs.distro_name }}-${{ matrix.target.result_file }}
           outputs: |
             result: ${{ steps.submit.outcome }}
 
   boot-job-result:
     name: Require boot jobs
-    needs: submit-boot-job
+    needs: [prepare-boot-jobs, submit-boot-job]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -149,6 +153,7 @@ jobs:
       - name: Require successful boot jobs
         id: result
         env:
+          EXPECTED_RESULTS: ${{ needs.prepare-boot-jobs.outputs.job_count }}
           MATRIX_RESULTS: ${{ steps.matrix.outputs.result }}
         run: |
           ci/assert-matrix-results.py
@@ -164,6 +169,7 @@ jobs:
       contents: read
     outputs:
       artifact_id: ${{ steps.lava-test-plans.outputs.artifact_id }}
+      job_count: ${{ steps.require-jobs.outputs.job_count }}
       jobmatrix: ${{ steps.lava-test-plans.outputs.jobmatrix }}
     steps:
       - name: Render pre-merge jobs
@@ -183,13 +189,16 @@ jobs:
           pr_url: ${{ inputs.pr_url }}
 
       - name: Require rendered pre-merge jobs
+        id: require-jobs
         env:
           ARTIFACT_ID: ${{ steps.lava-test-plans.outputs.artifact_id }}
           JOB_MATRIX: ${{ steps.lava-test-plans.outputs.jobmatrix }}
         run: |
           test -n "$ARTIFACT_ID"
           test -n "$JOB_MATRIX"
-          test "$(jq '.target | length' <<< "$JOB_MATRIX")" -gt 0
+          JOB_COUNT=$(jq '.target | length' <<< "$JOB_MATRIX")
+          test "$JOB_COUNT" -gt 0
+          echo "job_count=$JOB_COUNT" >> "$GITHUB_OUTPUT"
 
   submit-premerge-job:
     name: Pre-merge ${{ matrix.target.name }}
@@ -226,14 +235,14 @@ jobs:
         uses: qualcomm-linux/github-action-matrix-outputs-write@59fdd8db9c91b623ec1111b9c081435b1533f529 # v3
         with:
           matrix-step-name: submit-premerge-job-${{ inputs.distro_name }}
-          matrix-key: ${{ matrix.target.name }}-${{ inputs.distro_name }}
-          artifact-name: submit-premerge-job-${{ inputs.distro_name }}-${{ matrix.target.name }}
+          matrix-key: ${{ matrix.target.result_file }}
+          artifact-name: submit-premerge-job-${{ inputs.distro_name }}-${{ matrix.target.result_file }}
           outputs: |
             result: ${{ steps.submit.outcome }}
 
   premerge-job-result:
     name: Require pre-merge jobs
-    needs: submit-premerge-job
+    needs: [prepare-premerge-jobs, submit-premerge-job]
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -251,6 +260,7 @@ jobs:
 
       - name: Require successful pre-merge jobs
         env:
+          EXPECTED_RESULTS: ${{ needs.prepare-premerge-jobs.outputs.job_count }}
           MATRIX_RESULTS: ${{ steps.matrix.outputs.result }}
         run: ci/assert-matrix-results.py
 
