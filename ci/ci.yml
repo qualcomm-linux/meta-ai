@@ -1,0 +1,13 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/siemens/kas/master/kas/schema-kas.json
+
+header:
+  version: 14
+
+local_conf_header:
+  ci: |
+    BB_SIGNATURE_HANDLER = "OEBasicHash"
+  parallelism: |
+    # Bound compiler fan-out so cold-cache AI builds fit on 16-vCPU, 64-GiB runners.
+    BB_PRESSURE_MAX_MEMORY = "15000"
+    PARALLEL_MAKE = "-j 4"
+    do_compile[number_threads] = "8"

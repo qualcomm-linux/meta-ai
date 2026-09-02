@@ -1,0 +1,172 @@
+name: Build OpenEmbedded
+
+on:
+  workflow_call:
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event_name == 'pull_request' && format('pr-{0}', github.event.pull_request.number) || format('push-{0}', github.sha) }}
+  cancel-in-progress: true
+
+permissions:
+  contents: read
+
+env:
+  CACHE_DIR: /efs/qli/meta-qcom
+  KAS_CLONE_DEPTH: 1
+
+jobs:
+  kas-setup:
+    if: github.repository_owner == 'qualcomm-linux'
+    runs-on: [self-hosted, qcom-u2404, amd64]
+    steps:
+      - name: Download pinned kas-container
+        env:
+          KAS_COMMIT: 5248a4b12ed4b1d413c3628e31647a85b365199c
+        run: |
+          set -eu
+          KAS_CONTAINER=$RUNNER_TEMP/kas-container
+          echo "KAS_CONTAINER=$KAS_CONTAINER" >> "$GITHUB_ENV"
+          curl --fail --location --silent --show-error \
+            --output "$KAS_CONTAINER" \
+            "https://raw.githubusercontent.com/siemens/kas/${KAS_COMMIT}/kas-container"
+          test -s "$KAS_CONTAINER"
+          chmod +x "$KAS_CONTAINER"
+
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Lock standalone dependencies
+        run: |
+          "$KAS_CONTAINER" lock --update ci/base.yml
+
+      - name: Lock hardware integration dependencies
+        run: |
+          "$KAS_CONTAINER" lock --update ci/qcom-base.yml:ci/qcom-distro.yml
+
+      - name: Upload kas lockfiles
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: kas-lockfile
+          path: ci/*.lock.yml
+          if-no-files-found: error
+
+      - name: Upload kas-container
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: kas-container
+          path: ${{ env.KAS_CONTAINER }}
+          if-no-files-found: error
+
+  openembedded-checks:
+    needs: kas-setup
+    if: github.repository_owner == 'qualcomm-linux'
+    runs-on: [self-hosted, qcom-u2404, amd64]
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Download kas lockfile
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: kas-lockfile
+          path: ci
+
+      - name: Download kas-container
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: kas-container
+          path: ${{ runner.temp }}
+
+      - name: Set up kas-container
+        run: |
+          KAS_CONTAINER=$RUNNER_TEMP/kas-container
+          echo "KAS_CONTAINER=$KAS_CONTAINER" >> "$GITHUB_ENV"
+          test -s "$KAS_CONTAINER"
+          chmod +x "$KAS_CONTAINER"
+
+      - name: Run OpenEmbedded patch review
+        run: |
+          ci/kas-container-shell-helper.sh ci/oe-patchreview.sh
+
+      - name: Run layer checks
+        run: |
+          ci/kas-container-shell-helper.sh ci/oe-check-layer.sh
+
+  standalone:
+    needs: kas-setup
+    if: github.repository_owner == 'qualcomm-linux'
+    runs-on: [self-hosted, qcom-u2404, amd64]
+    strategy:
+      fail-fast: false
+      matrix:
+        machine:
+          - qemuarm
+          - qemuarm64
+          - qemux86-64
+    name: ${{ matrix.machine }}/nodistro
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build standalone layer
+        uses: ./.github/actions/build-standalone
+        with:
+          machine: ${{ matrix.machine }}
+          cache_dir: ${{ env.CACHE_DIR }}
+
+  hardware:
+    needs: kas-setup
+    if: github.repository_owner == 'qualcomm-linux'
+    runs-on: [self-hosted, qcom-u2404, amd64]
+    name: rb3gen2-core-kit/qcom-distro
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Build hardware integration image
+        uses: qualcomm-linux/meta-qcom/.github/actions/compile@f00721cb5468349e1cc978087b8a8d5d57ae5a60
+        with:
+          machine: rb3gen2-core-kit
+          distro_yaml: :ci/qcom-distro.yml
+          distro_name: qcom-distro
+          kernel_yaml: ""
+          kernel_dirname: ""
+          cache_dir: ${{ env.CACHE_DIR }}
+
+  publish_summary:
+    needs: hardware
+    if: ${{ always() && github.repository_owner == 'qualcomm-linux' }}
+    runs-on: ubuntu-latest
+    steps:
+      - uses: qualcomm-linux/meta-qcom/.github/actions/print-build-output@f00721cb5468349e1cc978087b8a8d5d57ae5a60
+        with:
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          pattern: build-url*
+
+  build_successful:
+    if: ${{ always() && github.repository_owner == 'qualcomm-linux' }}
+    needs: [kas-setup, openembedded-checks, standalone, hardware, publish_summary]
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Require every build stage
+        env:
+          KAS_SETUP_RESULT: ${{ needs.kas-setup.result }}
+          CHECKS_RESULT: ${{ needs.openembedded-checks.result }}
+          STANDALONE_RESULT: ${{ needs.standalone.result }}
+          HARDWARE_RESULT: ${{ needs.hardware.result }}
+          SUMMARY_RESULT: ${{ needs.publish_summary.result }}
+        run: |
+          ci/assert-job-results.sh \
+            "kas-setup=${KAS_SETUP_RESULT}" \
+            "openembedded-checks=${CHECKS_RESULT}" \
+            "standalone=${STANDALONE_RESULT}" \
+            "hardware=${HARDWARE_RESULT}" \
+            "publish-summary=${SUMMARY_RESULT}"

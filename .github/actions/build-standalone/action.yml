@@ -1,0 +1,59 @@
+name: Build meta-ai standalone
+description: Build every meta-ai recipe for one generic machine
+
+inputs:
+  machine:
+    description: Generic OpenEmbedded machine to build
+    required: true
+  cache_dir:
+    description: Shared downloads and sstate cache root
+    required: true
+
+runs:
+  using: composite
+  steps:
+    - name: Download kas lockfiles
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: kas-lockfile
+        path: ci
+
+    - name: Download kas-container
+      uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+      with:
+        name: kas-container
+        path: ${{ runner.temp }}
+
+    - name: Allocate isolated build directory
+      id: paths
+      shell: bash
+      env:
+        INPUT_MACHINE: ${{ inputs.machine }}
+      run: |
+        set -eu
+        KAS_CONTAINER=$RUNNER_TEMP/kas-container
+        KAS_WORK_DIR=$(mktemp -d "${RUNNER_TEMP}/kas-${INPUT_MACHINE}.XXXXXX")
+        test -s "$KAS_CONTAINER"
+        chmod +x "$KAS_CONTAINER"
+        echo "kas-container=$KAS_CONTAINER" >> "$GITHUB_OUTPUT"
+        echo "kas-work-dir=$KAS_WORK_DIR" >> "$GITHUB_OUTPUT"
+
+    - name: Build standalone layer
+      shell: bash
+      env:
+        CACHE_DIR: ${{ inputs.cache_dir }}
+        KAS_CONTAINER: ${{ steps.paths.outputs.kas-container }}
+        KAS_WORK_DIR: ${{ steps.paths.outputs.kas-work-dir }}
+        MACHINE: ${{ inputs.machine }}
+      run: ci/run-standalone-build.sh
+
+    - name: Upload build diagnostics
+      if: always()
+      uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+      with:
+        name: standalone-${{ inputs.machine }}
+        path: |
+          kas-build-${{ inputs.machine }}.yml
+          buildstats.log
+          buildstats.svg
+        if-no-files-found: warn

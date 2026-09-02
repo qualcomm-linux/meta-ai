@@ -1,0 +1,20 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/siemens/kas/master/kas/schema-kas.json
+
+header:
+  version: 14
+  includes:
+    - repo: meta-qcom
+      file: ci/qcom-distro.yml
+
+repos:
+  # Keep this repository as the layer under test instead of fetching meta-ai/main.
+  meta-ai:
+    url: null
+    branch: null
+
+local_conf_header:
+  meta_ai_ci: |
+    IMAGE_INSTALL:append = " litert llama-cpp onnxruntime tensorflow-lite tensorflow-lite-tools"
+
+target:
+  - qcom-multimedia-image

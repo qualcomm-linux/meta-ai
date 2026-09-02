@@ -1,0 +1,19 @@
+name: Build on push
+run-name: "${{ github.ref_name }}: ${{ github.event.head_commit.message }}"
+
+on:
+  push:
+    branches:
+      - main
+      - wrynose
+
+permissions:
+  contents: read
+
+jobs:
+  build:
+    permissions:
+      actions: read
+      contents: read
+      packages: read
+    uses: ./.github/workflows/build-openembedded.yml
