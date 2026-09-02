@@ -1,76 +1,98 @@
 # Contributing to meta-ai
 
-Hi there!
-We’re thrilled that you’d like to contribute to this project.
-Your help is essential for keeping this project great and for making it better.
+Thank you for contributing to meta-ai.
 
-## Branching Strategy
+For baseline OpenEmbedded / Yocto Project patch expectations, refer to
+[Preparing Changes for Submission](https://docs.yoctoproject.org/dev/contributor-guide/submit-changes.html#preparing-changes-for-submission).
 
-In general, contributors should develop on branches based off of `main` and pull requests should be made against `main`.
+## Branching strategy
+
+Develop changes on branches based on `main` and open pull requests against
+`main`.
 
 ## Submitting a pull request
 
-1. Please read our [code of conduct](CODE-OF-CONDUCT.md) and [license](LICENSE.txt).
-1. [Fork](https://github.com/qualcomm-linux/meta-ai/fork) and clone the repository.
+1. Read our [code of conduct](CODE-OF-CONDUCT.md) and [license](LICENSE.txt).
+1. [Fork](https://github.com/qualcomm-linux/meta-ai/fork) and clone the
+   repository.
+1. Create a branch from `main`.
+1. Add an `upstream` remote to keep your branch current with
+   `qualcomm-linux/meta-ai`.
+1. Make your changes and run the checks listed below.
+1. Commit with DCO sign-off (`git commit -s`).
+1. Rebase on top of latest upstream `main`.
+1. Push your branch and open a pull request.
 
-    ```bash
-    git clone https://github.com/<username>/meta-ai.git
-    ```
+Keep each pull request focused on one logical change. If you have independent
+changes, send them as separate pull requests. For large or architectural
+changes, align with maintainers early so review can focus on implementation
+details.
 
-1. Create a new branch based on `main`:
+## Local checks before opening or updating a pull request
 
-    ```bash
-    git checkout -b <my-branch-name> main
-    ```
+This repository runs pull-request workflows automatically. The workflow YAML is
+not a local executable. Before opening or updating a PR, run the baseline
+OpenEmbedded build with `kas-container`:
 
-1. Create an upstream `remote` to make it easier to keep your branches up-to-date:
+```bash
+kas-container build kas/base.yml:kas/qemuarm64.yml
+```
 
-    ```bash
-    git remote add upstream https://github.com/qualcomm-linux/meta-ai.git
-    ```
+For changes involving virtualization, include the virtualization overlay:
 
-1. Make your changes, add tests, and make sure the tests still pass.
-1. Commit your changes using the [DCO](https://developercertificate.org/). You can attest to the DCO by commiting with the **-s** or **--signoff** options or manually adding the "Signed-off-by":
+```bash
+kas-container build kas/base.yml:kas/qemuarm64.yml:kas/virt.yml
+```
 
-    ```bash
-    git commit -s -m "Really useful commit message"`
-    ```
+Run the smallest relevant targeted validation in addition to the baseline
+build when your change affects a specific recipe or component.
 
-1. After committing your changes on the topic branch, sync it with the upstream branch:
+## Commit message requirements
 
-    ```bash
-    git pull --rebase upstream main
-    ```
+Each commit must be atomic: one logical change per commit, with the tree kept
+functional after every commit.
 
-1. Push to your fork.
+Use a clear commit subject in the form:
 
-    ```bash
-    git push -u origin <my-branch-name>
-    ```
+```text
+component: summary of the change
+```
 
-    The `-u` is shorthand for `--set-upstream`. This will set up the tracking reference so subsequent runs of `git push` or `git pull` can omit the remote and branch.
+Write the commit body in plain English and focus on:
 
-1. [Submit a pull request](https://github.com/qualcomm-linux/meta-ai/pulls) from your branch to `main`.
-1. Pat yourself on the back and wait for your pull request to be reviewed.
+- why the change is needed;
+- what approach is taken to address the issue;
+- any behavior impact or migration guidance when applicable.
 
-## Security Analysis of Pull Requests
+Use imperative mood ("add", "fix", "drop", "update") and wrap body lines for
+readability (about 72 columns).
 
-To maintain the security and integrity of this project, all pull requests from external contributors are automatically scanned using [Semgrep](https://github.com/semgrep/semgrep) to detect insecure coding patterns and potential security flaws.
+## Sign-off and attribution trailers
 
-**Static Analysis with Semgrep:**  We use Semgrep to perform lightweight, fast static analysis on every PR. This helps identify risky code patterns and logic flaws early in the development process.
+Every commit must include a `Signed-off-by` trailer matching your local git
+identity (use `git commit -s`).
 
-**Contributor Responsibility:** If any issues are flagged, contributors are expected to resolve them before the PR can be merged.
+If an AI assistant was used, add an `Assisted-by` trailer:
 
-**Continuous Improvement:** Our Semgrep ruleset evolves over time to reflect best practices and emerging security concerns.
+```text
+Assisted-by: AGENT_NAME:MODEL_VERSION [TOOL1] [TOOL2]
+```
 
-By submitting a PR, you agree to participate in this process and help us keep the project secure for everyone.
+Only include specialized analysis tools in bracketed fields. Do not include
+basic tools such as git or editors.
 
+## Security analysis of pull requests
 
-Here are a few things you can do that will increase the likelihood of your pull request to be accepted:
+External pull requests are automatically scanned with
+[Semgrep](https://github.com/semgrep/semgrep) to detect insecure coding
+patterns and potential security flaws.
 
-- Follow the existing style where possible. **INSERT LINK TO STYLE, e.g. PEP8 for python**
-- Write tests.
-- Keep your change as focused as possible.
-  If you want to make multiple independent changes, please consider submitting them as separate pull requests.
-- Write a [good commit message](https://tbaggery.com/2008/04/19/a-note-about-git-commit-messages.html).
-- It's a good idea to arrange a discussion with other developers to ensure there is consensus on large features, architecture changes, and other core code changes. PR reviews will go much faster when there are no surprises.
+Contributors are expected to resolve findings before merge.
+
+## Pull request checklist
+
+- Follow the existing style where possible.
+- Run the relevant local validation.
+- Keep the change focused; submit independent changes as separate PRs.
+- Use well-formed commit messages with the required trailers.
+- Discuss large features, architecture changes, and other core changes early.
