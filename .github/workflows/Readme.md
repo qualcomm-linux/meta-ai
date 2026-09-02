@@ -4,7 +4,7 @@ The repository runs policy checks, standalone OpenEmbedded builds and one hardwa
 
 ## Build flow
 
-`pr.yml` and `push.yml` call `build-openembedded.yml`. Build jobs use the `[self-hosted, qcom-u2404, amd64]` project runner pool and reuse `/efs/qli/meta-qcom/downloads` and `/efs/qli/meta-qcom/sstate-cache`. Each job has an isolated temporary build directory; only the OpenEmbedded downloads and sstate caches are shared. Pull requests from forks are rejected because untrusted fork code must not execute on credential-bearing self-hosted runners or write to shared caches; a maintainer must reproduce the change on a repository branch.
+`pr.yml` and `push.yml` call `build-openembedded.yml`. Metadata setup and layer checks use GitHub-hosted runners. Compilation uses the `[self-hosted, qcom-u2404, amd64]` project runner pool and reuses `/efs/qli/meta-qcom/downloads` and `/efs/qli/meta-qcom/sstate-cache`. Each compilation job has an isolated temporary build directory; only the OpenEmbedded downloads and sstate caches are shared. Pull requests from forks are rejected because untrusted fork code must not execute on credential-bearing self-hosted runners or write to shared caches; a maintainer must reproduce the change on a repository branch.
 
 The standalone matrix builds every recipe in this layer for `qemuarm`, `qemuarm64` and `qemux86-64` with `DISTRO = "nodistro"`. The RB3 Gen 2 job combines the checked-out meta-ai revision with meta-qcom and meta-qcom-distro, installs the AI runtime packages into `qcom-multimedia-image`, and reuses meta-qcom's compile and private artifact actions.
 

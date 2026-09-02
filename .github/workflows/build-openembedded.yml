@@ -17,7 +17,7 @@ env:
 jobs:
   kas-setup:
     if: github.repository_owner == 'qualcomm-linux'
-    runs-on: [self-hosted, qcom-u2404, amd64]
+    runs-on: ubuntu-latest # Metadata setup needs no private infrastructure.
     steps:
       - name: Download pinned kas-container
         env:
@@ -61,7 +61,7 @@ jobs:
   openembedded-checks:
     needs: kas-setup
     if: github.repository_owner == 'qualcomm-linux'
-    runs-on: [self-hosted, qcom-u2404, amd64]
+    runs-on: ubuntu-latest # Layer checks need no shared cache.
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -97,7 +97,7 @@ jobs:
   standalone:
     needs: kas-setup
     if: github.repository_owner == 'qualcomm-linux'
-    runs-on: [self-hosted, qcom-u2404, amd64]
+    runs-on: [self-hosted, qcom-u2404, amd64] # Compilation needs shared caches.
     strategy:
       fail-fast: false
       matrix:
@@ -120,7 +120,7 @@ jobs:
   hardware:
     needs: kas-setup
     if: github.repository_owner == 'qualcomm-linux'
-    runs-on: [self-hosted, qcom-u2404, amd64]
+    runs-on: [self-hosted, qcom-u2404, amd64] # Images need cache and upload access.
     name: rb3gen2-core-kit/qcom-distro
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
