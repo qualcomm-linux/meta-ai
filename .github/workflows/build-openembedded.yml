@@ -21,7 +21,7 @@ jobs:
     steps:
       - name: Download pinned kas-container
         env:
-          KAS_COMMIT: 5248a4b12ed4b1d413c3628e31647a85b365199c
+          KAS_COMMIT: 77468d740732cbe992d7e34b5f645d39b3e186aa
         run: |
           set -eu
           KAS_CONTAINER=$RUNNER_TEMP/kas-container
