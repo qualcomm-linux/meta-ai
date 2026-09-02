@@ -71,7 +71,7 @@ jobs:
 
       - name: Publish JUnit results
         if: always() && steps.results.outcome == 'success'
-        uses: EnricoMi/publish-unit-test-result-action@b3f8796819acf652cecbf27a64fa9ac8d7e137ee # v2
+        uses: EnricoMi/publish-unit-test-result-action@d0a4676d0e0b938bc201470d88276b7c74c712b3 # v2.24.0
         with:
           commit: ${{ inputs.commit }}
           event_file: ${{ inputs.event_file }}
