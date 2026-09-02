@@ -1,0 +1,84 @@
+name: Publish LAVA results
+
+on:
+  workflow_call:
+    inputs:
+      workflow_id:
+        description: Build workflow run ID
+        required: true
+        type: string
+      event_name:
+        description: Original GitHub event name
+        required: true
+        type: string
+      event_file:
+        description: Downloaded path to the original event file
+        required: true
+        type: string
+      commit:
+        description: Commit receiving the check run
+        required: true
+        type: string
+    secrets:
+      TEST_REPORTING_APP_TOKEN:
+        description: Private key for the test-reporting GitHub App
+        required: true
+
+permissions: {}
+
+jobs:
+  publish-test-results:
+    name: Publish test results
+    runs-on: ubuntu-latest
+    permissions:
+      actions: read
+      checks: write
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Download build artifacts
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          run-id: ${{ inputs.workflow_id }}
+          path: artifacts
+          github-token: ${{ github.token }}
+
+      - name: Download test artifacts
+        if: github.run_id != inputs.workflow_id
+        uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: artifacts
+          github-token: ${{ github.token }}
+
+      - name: Require JUnit results
+        id: results
+        run: |
+          if ! find "$GITHUB_WORKSPACE/artifacts" -name '*.xml' -print -quit | grep -q .; then
+            echo "No JUnit result files were downloaded."
+            exit 1
+          fi
+          test -f "${{ inputs.event_file }}"
+
+      - name: Create reporting token
+        id: app-token
+        if: always()
+        uses: actions/create-github-app-token@bcd2ba49218906704ab6c1aa796996da409d3eb1 # v3
+        with:
+          client-id: 2291458
+          private-key: ${{ secrets.TEST_REPORTING_APP_TOKEN }}
+          permission-checks: write
+          permission-pull-requests: write
+
+      - name: Publish JUnit results
+        if: always() && steps.results.outcome == 'success'
+        uses: EnricoMi/publish-unit-test-result-action@b3f8796819acf652cecbf27a64fa9ac8d7e137ee # v2
+        with:
+          commit: ${{ inputs.commit }}
+          event_file: ${{ inputs.event_file }}
+          event_name: ${{ inputs.event_name }}
+          files: "${{ github.workspace }}/artifacts/**/*.xml"
+          action_fail: true
+          action_fail_on_inconclusive: true
+          github_token: ${{ steps.app-token.outputs.token }}
+          report_individual_runs: true
+          report_suite_logs: any

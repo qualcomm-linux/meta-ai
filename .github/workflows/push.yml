@@ -6,14 +6,83 @@ on:
     branches:
       - main
       - wrynose
+      # Remove this branch before merging; it exists so the complete trusted
+      # build and LAVA chain can be exercised before the workflows reach main.
+      - koenkooi-ci-lava-proposal
 
 permissions:
   contents: read
 
 jobs:
+  event-file:
+    name: "Upload event file"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Upload
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: Event File
+          path: ${{ github.event_path }}
+          if-no-files-found: error
+
   build:
     permissions:
       actions: read
       contents: read
       packages: read
     uses: ./.github/workflows/build-openembedded.yml
+
+  test:
+    name: Run LAVA tests
+    needs: build
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/test.yml
+    secrets:
+      LAVATOKEN: ${{ secrets.LAVATOKEN }}
+    with:
+      build_id: ${{ github.run_id }}
+
+  publish:
+    name: Publish test results
+    needs: [build, test]
+    if: always() && needs.build.result == 'success'
+    permissions:
+      actions: read
+      checks: write
+      contents: read
+      pull-requests: write
+    uses: ./.github/workflows/publish-results.yml
+    secrets:
+      TEST_REPORTING_APP_TOKEN: ${{ secrets.TEST_REPORTING_APP_TOKEN }}
+    with:
+      commit: ${{ github.sha }}
+      event_file: artifacts/Event File/event.json
+      event_name: push
+      workflow_id: ${{ github.run_id }}
+
+  ci-successful:
+    name: Build and LAVA successful
+    needs: [event-file, build, test, publish]
+    if: always()
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+
+      - name: Require every CI stage
+        env:
+          BUILD_RESULT: ${{ needs.build.result }}
+          EVENT_RESULT: ${{ needs.event-file.result }}
+          PUBLISH_RESULT: ${{ needs.publish.result }}
+          TEST_RESULT: ${{ needs.test.result }}
+        run: |
+          ci/assert-job-results.sh \
+            "event-file=${EVENT_RESULT}" \
+            "build=${BUILD_RESULT}" \
+            "test=${TEST_RESULT}" \
+            "publish=${PUBLISH_RESULT}"

@@ -1,0 +1,47 @@
+name: Test in LAVA
+
+on:
+  workflow_call:
+    inputs:
+      build_id:
+        description: Workflow run containing hardware build artifacts
+        required: true
+        type: string
+      pr_number:
+        description: Pull request number recorded in LAVA metadata
+        required: false
+        type: string
+      pr_url:
+        description: Pull request URL recorded in LAVA metadata
+        required: false
+        type: string
+    outputs:
+      summary_id:
+        description: Artifact ID containing the LAVA summary
+        value: ${{ jobs.test-qcom-distro.outputs.summary_id }}
+    secrets:
+      LAVATOKEN:
+        description: Token used to submit jobs to LAVA
+        required: true
+
+permissions: {}
+
+jobs:
+  test-qcom-distro:
+    name: Test qcom-distro on RB3 Gen 2
+    permissions:
+      actions: read
+      contents: read
+    uses: ./.github/workflows/test-openembedded-distro.yml
+    secrets:
+      LAVATOKEN: ${{ secrets.LAVATOKEN }}
+    with:
+      build_id: ${{ inputs.build_id }}
+      devices: rb3gen2-core-kit
+      devices_premerge: rb3gen2-core-kit
+      distro_name: qcom-distro
+      project_name: meta-qcom-distro
+      lava_test_plans_ref: a20c74e6827b87ca39dff33eff4769d860e7942c
+      testkit_ref: testkit-2026.08.14
+      pr_number: ${{ inputs.pr_number }}
+      pr_url: ${{ inputs.pr_url }}
