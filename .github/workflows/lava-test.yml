@@ -1,0 +1,46 @@
+# DISABLED PLACEHOLDER — on-device LAVA testing is not yet implemented for meta-ai.
+#
+# This workflow only runs via manual `workflow_dispatch` (no `push`/
+# `pull_request` triggers), so it never fires automatically. It exists to
+# document the intended shape of on-device testing before it is built.
+#
+# TODO: enable on-device testing of the AI runtimes (litert, onnxruntime,
+# tensorflow-lite, llama-cpp) against simple models, on real hardware, via
+# LAVA. See meta-qcom's test.yml / test-distro.yml and the
+# `qualcomm-linux/meta-qcom/.github/actions/lava-test-plans` action for the
+# pattern to follow (job definitions generated via the
+# `qualcomm-linux/lava-test-plans` tool, submitted via
+# `foundriesio/lava-action`).
+#
+# Target machines:
+#   - rb1-core-kit      (qualcomm-linux/meta-qcom)
+#   - rb3gen2-core-kit  (qualcomm-linux/meta-qcom)
+#   - uno-q             (qualcomm-linux/meta-qcom-3rdparty, merged)
+#   - ventuno-q         (qualcomm-linux/meta-qcom-3rdparty, NOT yet merged —
+#                         see PR #16 "Add ventuno-q support"; blocked on that
+#                         landing upstream before this machine can be added)
+#
+# To enable: add `push`/`pull_request` triggers (mirroring push.yml/pr.yml),
+# wire this into push.yml/pr.yml as a needs: [build] job, remove this TODO
+# block, and fill in the lava-test-plans invocation per target machine.
+
+name: LAVA on-device tests (disabled placeholder)
+
+on:
+  workflow_dispatch:
+    inputs:
+      build_id:
+        required: true
+        type: string
+        description: "Run ID of the build-yocto.yml workflow run to test"
+
+jobs:
+  test-nodistro:
+    name: "Test nodistro (placeholder — not implemented)"
+    runs-on: ubuntu-latest
+    steps:
+      - name: Not implemented
+        run: |
+          echo "On-device LAVA testing is not yet implemented for meta-ai."
+          echo "See the TODO block at the top of this workflow file."
+          exit 1

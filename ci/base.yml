@@ -1,0 +1,50 @@
+# yaml-language-server: $schema=https://raw.githubusercontent.com/siemens/kas/master/kas/schema-kas.json
+
+header:
+  version: 14
+
+distro: nodistro
+
+defaults:
+  repos:
+    branch: main
+
+repos:
+  meta-ai:
+
+  openembedded-core:
+    url: https://github.com/openembedded/openembedded-core
+    layers:
+      meta:
+
+  meta-openembedded:
+    url: https://github.com/openembedded/meta-openembedded
+    layers:
+      meta-oe:
+
+  bitbake:
+    url: https://github.com/openembedded/bitbake
+    layers:
+      .: disabled
+
+local_conf_header:
+  base: |
+    INHERIT += "buildstats buildstats-summary"
+    INHERIT += "buildhistory"
+    INHERIT += "rm_work"
+  diskmon: |
+    BB_DISKMON_DIRS ??= "\
+      STOPTASKS,${TMPDIR},1G,100K \
+      STOPTASKS,${DL_DIR},1G,100K \
+      STOPTASKS,${SSTATE_DIR},10G,100K \
+      STOPTASKS,/tmp,100M,100K \
+      HALT,${TMPDIR},100M,1K \
+      HALT,${DL_DIR},100M,1K \
+      HALT,${SSTATE_DIR},1G,1K \
+      HALT,/tmp,10M,1K"
+
+machine: unset
+
+target:
+  - llama-cpp
+  - tensorflow-lite
