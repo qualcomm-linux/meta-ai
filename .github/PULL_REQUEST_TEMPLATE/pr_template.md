@@ -22,6 +22,7 @@ Please delete options that are not relevant.
 - [ ] I have added tests that prove my fix is effective or that my feature works
 - [ ] New and existing unit tests pass locally with my changes
 - [ ] Any dependent changes have been merged and published in downstream modules
+- [ ] This change builds standalone (no new dependency on any BSP or hardware-enablement layer) and works on qemuarm, qemuarm64, and qemux86-64 with `DISTRO=nodistro` — see README's "Layer requirements: standalone build"
 
 **Additional Context**
 Add any other context or screenshots about the pull request here.
