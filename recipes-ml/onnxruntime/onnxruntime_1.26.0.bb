@@ -15,12 +15,16 @@ DEPENDS = " \
     re2 \
     abseil-cpp \
     nlohmann-json \
-    microsoft-gsl \
 "
 
 # Dependency versions and revisions are taken from cmake/deps.txt at the
 # rel-1.26.0 tag. They must match what onnxruntime expects, since the build
 # runs with FETCHCONTENT_FULLY_DISCONNECTED=ON.
+#
+# GSL is vendored at v4.0.0 (rather than relying on the microsoft-gsl recipe)
+# because onnxruntime's Microsoft.GSL find_package request uses
+# SameMajorVersion compatibility, and meta-openembedded's microsoft-gsl
+# recipe provides a major version 5 release that it rejects.
 SRC_URI = "gitsm://github.com/microsoft/onnxruntime.git;protocol=https;branch=rel-${PV};name=ort \
     file://0001-cmake-fix-GCC-16-build.patch \
     git://github.com/HowardHinnant/date.git;protocol=https;nobranch=1;name=date;tag=v3.0.1;destsuffix=date \
@@ -30,9 +34,10 @@ SRC_URI = "gitsm://github.com/microsoft/onnxruntime.git;protocol=https;branch=re
     git://github.com/google/flatbuffers.git;protocol=https;nobranch=1;name=flatbuffers;tag=v23.5.26;destsuffix=flatbuffers \
     git://github.com/onnx/onnx.git;protocol=https;nobranch=1;name=onnx;tag=v1.21.0;destsuffix=onnx \
     git://github.com/eigen-mirror/eigen.git;protocol=https;nobranch=1;name=eigen3;destsuffix=eigen3 \
+    git://github.com/microsoft/GSL.git;protocol=https;nobranch=1;name=gsl;tag=v4.0.0;destsuffix=gsl \
 "
 
-SRCREV_FORMAT = "ort_date_mp11_pytorch_cpuinfo_safeint_flatbuffers_onnx_eigen3"
+SRCREV_FORMAT = "ort_date_mp11_pytorch_cpuinfo_safeint_flatbuffers_onnx_eigen3_gsl"
 SRCREV_ort              = "8c546c37b43caaca1fa25db430dab94b901cf277"
 SRCREV_date             = "6e921e1b1d21e84a5c82416ba7ecd98e33a436d0"
 SRCREV_mp11             = "0a0b5fb001ce0233ae3a6f99d849c0649e5a7361"
@@ -41,6 +46,7 @@ SRCREV_safeint          = "4cafc9196c4da9c817992b20f5253ef967685bf8"
 SRCREV_flatbuffers      = "c20d64b8de759423af61e072fcabf916c1f7bf9f"
 SRCREV_onnx             = "be2b5fde82d9c8874f3d19328bdfe3b6962dc67b"
 SRCREV_eigen3           = "1d8b82b0740839c0de7f1242a3585e3390ff5f33"
+SRCREV_gsl              = "1fcf53a2f64c72c76f5d84adb50d41e6c4467d23"
 
 # Fix buildpaths QA issue: remap TMPDIR references in both debug info and
 # string literals embedded in the compiled libraries.
@@ -64,6 +70,7 @@ EXTRA_OECMAKE = " \
     -DFETCHCONTENT_SOURCE_DIR_FLATBUFFERS=${WORKDIR}/sources/flatbuffers \
     -DFETCHCONTENT_SOURCE_DIR_ONNX=${WORKDIR}/sources/onnx \
     -DFETCHCONTENT_SOURCE_DIR_EIGEN3=${WORKDIR}/sources/eigen3 \
+    -DFETCHCONTENT_SOURCE_DIR_GSL=${WORKDIR}/sources/gsl \
     -DONNX_CUSTOM_PROTOC_EXECUTABLE=${STAGING_BINDIR_NATIVE}/protoc \
     -DONNX_BUILD_TESTS=OFF \
     -Donnxruntime_BUILD_UNIT_TESTS=OFF \
