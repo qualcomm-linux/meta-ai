@@ -35,8 +35,13 @@ SRCREV_nlohmannJson    = "9cca280a4d0ccf0c08f47a99aa71d1b0e52f8d03"
 SRCREV_googletest      = "58d77fa8070e8cec2dc1ed015d66b454c8d78850"
 SRCREV_googlebenchmark = "0d98dba29d66e93259db7daa53a9327df767a415"
 SRCREV_fft2d           = "c6fd2dd6d21397baa6653139d31d84540d5449a2"
+# NEON-to-SSE translation shim (only used by TFLite's CMake on x86/x86-64,
+# but fetched unconditionally so we don't have to special-case every new
+# target arch); pinned to the commit litert's own
+# tflite/tools/cmake/modules/neon2sse.cmake references at SRCREV_litert.
+SRCREV_neon2sse        = "a15b489e1222b2087007546b4912e21293ea86ff"
 
-SRCREV_FORMAT = "litert_tensorflow_eigen_cpuinfo_farmhash_fp16_fxdiv_gemmlowp_kleidiai_mlDtypes_openclHeaders_openglHeaders_eglHeaders_pthreadpool_ruy_vulkanHeaders_xnnpack_flatbuffers_nlohmannJson_googletest_googlebenchmark_fft2d"
+SRCREV_FORMAT = "litert_tensorflow_eigen_cpuinfo_farmhash_fp16_fxdiv_gemmlowp_kleidiai_mlDtypes_openclHeaders_openglHeaders_eglHeaders_pthreadpool_ruy_vulkanHeaders_xnnpack_flatbuffers_nlohmannJson_googletest_googlebenchmark_fft2d_neon2sse"
 
 FETCHCONTENT_LOCAL_DIR = "${UNPACKDIR}/fetched"
 
@@ -71,6 +76,7 @@ SRC_URI = " \
     git://github.com/google/googletest.git;name=googletest;protocol=https;branch=v1.12.x;destsuffix=fetched/googletest \
     git://github.com/google/benchmark.git;name=googlebenchmark;protocol=https;nobranch=1;destsuffix=fetched/googlebenchmark \
     git://github.com/petewarden/OouraFFT.git;name=fft2d;nobranch=1;protocol=https;destsuffix=fetched/fft2d \
+    git://github.com/intel/ARM_NEON_2_x86_SSE.git;name=neon2sse;protocol=https;nobranch=1;destsuffix=fetched/neon2sse \
     "
 
 # Patch 0007 installs the Qualcomm plugins; only needed/valid when qualcomm is enabled.
@@ -78,7 +84,11 @@ SRC_URI:append = "${@bb.utils.contains('PACKAGECONFIG', 'qualcomm', ' file://000
 
 OECMAKE_SOURCEPATH = "${S}/litert"
 
-COMPATIBLE_HOST = "aarch64.*"
+# 32-bit ARM is excluded: XNNPACK's bundled CMake subbuild compiles some
+# sources without the toolchain's -mcpu flags, so gcc falls back to a Thumb-1
+# baseline that can't do the requested hard-float VFP ABI ("sorry,
+# unimplemented: Thumb-1 'hard-float' VFP ABI").
+COMPATIBLE_HOST = "aarch64.*|x86_64.*"
 
 DEPENDS = " \
     abseil-cpp \
@@ -137,6 +147,7 @@ LITERT_FETCHCONTENT_OFFLINE_OECMAKE = " \
     -DFXDIV_SOURCE_DIR=${FETCHCONTENT_LOCAL_DIR}/fxdiv \
     -DXNNPACK_SOURCE_DIR=${FETCHCONTENT_LOCAL_DIR}/xnnpack \
     -DFETCHCONTENT_SOURCE_DIR_XNNPACK=${FETCHCONTENT_LOCAL_DIR}/xnnpack \
+    -DFETCHCONTENT_SOURCE_DIR_NEON2SSE=${FETCHCONTENT_LOCAL_DIR}/neon2sse \
     -DKLEIDIAI_SOURCE_DIR=${FETCHCONTENT_LOCAL_DIR}/kleidiai \
     -DCPUINFO_SOURCE_DIR=${FETCHCONTENT_LOCAL_DIR}/cpuinfo \
     -DFETCHCONTENT_SOURCE_DIR_CPUINFO=${FETCHCONTENT_LOCAL_DIR}/cpuinfo \
