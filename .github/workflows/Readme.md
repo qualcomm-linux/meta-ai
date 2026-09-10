@@ -4,7 +4,7 @@ The repository runs policy checks and standalone OpenEmbedded builds.
 
 ## Build flow
 
-`pr.yml` and `push.yml` call `build-openembedded.yml`. Metadata setup and layer checks use GitHub-hosted runners. Compilation uses the `[self-hosted, qcom-u2404, amd64]` project runner pool and reuses `/efs/qli/meta-qcom/downloads` and `/efs/qli/meta-qcom/sstate-cache`. Each compilation job has an isolated temporary build directory; only the OpenEmbedded downloads and sstate caches are shared. Pull requests from forks are rejected because untrusted fork code must not execute on credential-bearing self-hosted runners or write to shared caches; a maintainer must reproduce the change on a repository branch.
+`pr.yml` and `push.yml` call `build-openembedded.yml`. Metadata setup and layer checks use GitHub-hosted runners. Compilation uses the `[self-hosted, qcom-u2404, amd64]` project runner pool and reuses `/efs/qli/meta-qcom/downloads` and `/efs/qli/meta-qcom/sstate-cache`. Each compilation job has an isolated temporary build directory; only the OpenEmbedded downloads and sstate caches are shared. Pull requests from forks skip the OpenEmbedded build because untrusted fork code must not execute on credential-bearing self-hosted runners or write to shared caches; a maintainer must reproduce the change on a repository branch.
 
 The standalone matrix builds every recipe in this layer for `qemuarm`, `qemuarm64` and `qemux86-64` with `DISTRO = "nodistro"`.
 
