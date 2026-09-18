@@ -8,6 +8,8 @@ The repository runs policy checks and standalone OpenEmbedded builds.
 
 The standalone matrix builds every recipe in this layer for `qemuarm`, `qemuarm64` and `qemux86-64` with `DISTRO = "nodistro"`.
 
+`push.yml` also runs the same build daily at 02:17 UTC against the default branch.
+
 Kas and cross-repository actions are pinned to reviewed commits. Kas lockfiles pin the OpenEmbedded metadata revisions used by each workflow run.
 
 `build_successful` is the required aggregate result. It fails if setup, layer checks, or any standalone build does not succeed.
