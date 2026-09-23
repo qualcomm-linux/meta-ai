@@ -1,0 +1,35 @@
+From 43585be94681b15236503a7f3b7e64c1c9997baa Mon Sep 17 00:00:00 2001
+From: Pratik Pachange <ppachang@qti.qualcomm.com>
+Date: Wed, 23 Sep 2026 16:02:55 +0530
+Subject: [PATCH] cmake: install onnxruntime_perf_test binary
+
+onnxruntime_perf_test is built when unit tests are enabled but lacks
+an install rule, preventing downstream packaging recipes from
+including it in target images.
+Install the perf-test executable to ${CMAKE_INSTALL_BINDIR} alongside
+the other runtime tools.
+
+Upstream-Status: Submitted [https://github.com/microsoft/onnxruntime/pull/32759]
+
+Signed-off-by: Pratik Pachange <ppachang@qti.qualcomm.com>
+---
+ cmake/onnxruntime_unittests.cmake | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/cmake/onnxruntime_unittests.cmake b/cmake/onnxruntime_unittests.cmake
+index 7f361aa6392..e7375f0eb59 100644
+--- a/cmake/onnxruntime_unittests.cmake
++++ b/cmake/onnxruntime_unittests.cmake
+@@ -1545,6 +1545,9 @@ if (NOT onnxruntime_ENABLE_TRAINING_TORCH_INTEROP)
+     endif()
+     set_target_properties(onnxruntime_perf_test PROPERTIES FOLDER "ONNXRuntimeTest")
+ 
++    install(TARGETS onnxruntime_perf_test
++            RUNTIME DESTINATION ${CMAKE_INSTALL_BINDIR})
++
+ endif()
+ 
+ 
+-- 
+2.34.1
+
