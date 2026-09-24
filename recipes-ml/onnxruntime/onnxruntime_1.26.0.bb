@@ -54,6 +54,13 @@ SRCREV_gsl              = "1fcf53a2f64c72c76f5d84adb50d41e6c4467d23"
 CFLAGS:append   = " -ffile-prefix-map=${WORKDIR}=. -ffile-prefix-map=${S}=. -ffile-prefix-map=${B}=."
 CXXFLAGS:append = " -ffile-prefix-map=${WORKDIR}=. -ffile-prefix-map=${S}=. -ffile-prefix-map=${B}=."
 
+# With onnxruntime_BUILD_UNIT_TESTS=ON, onnxruntime_provider_test's SSE/AVX
+# intrinsics usage trips GCC 16's -Werror=array-bounds= inside gcc's own
+# emmintrin.h/avxintrin.h on x86-64-v3 (AVX2) builds -- a known GCC
+# intrinsics/array-bounds false positive, not a real bug in this code.
+CFLAGS:append:x86-64   = " -Wno-error=array-bounds"
+CXXFLAGS:append:x86-64 = " -Wno-error=array-bounds"
+
 inherit cmake
 
 OECMAKE_SOURCEPATH = "${S}/cmake"
