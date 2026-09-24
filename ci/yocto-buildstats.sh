@@ -24,7 +24,7 @@ if [ -z "$BUILDSTATS" ]; then
     exit 1
 fi
 
-"$WORK_DIR/oe-core/scripts/pybootchartgui/pybootchartgui.py" \
+"$WORK_DIR/openembedded-core/scripts/pybootchartgui/pybootchartgui.py" \
     --minutes \
     --full-time \
     --format=svg \

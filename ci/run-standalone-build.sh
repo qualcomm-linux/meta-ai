@@ -21,7 +21,7 @@ mkdir -p "$KAS_WORK_DIR"
 
 DL_DIR="$CACHE_DIR/downloads"
 SSTATE_DIR="$CACHE_DIR/sstate-cache"
-KAS_YAMLS="ci/ci.yml:ci/${MACHINE}.yml:ci/world.yml"
+KAS_YAMLS="kas/base.yml:kas/${MACHINE}.yml:kas/ci.yml:kas/world.yml"
 RESOLVED_CONFIG="kas-build-${MACHINE}.yml"
 
 export DL_DIR KAS_WORK_DIR SSTATE_DIR
