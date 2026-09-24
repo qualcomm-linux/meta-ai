@@ -55,6 +55,7 @@ SRC_URI = " \
     file://0006-litert-c-add-soversion-install-rules-and-pkg-config-.patch \
     file://0008-Make-CMake-vendor-builds-opt-in-and-offline-safe.patch \
     file://0009-litert-core-accept-soname-versioned-plugin-libs.patch \
+    file://0010-tensor-add-an-option-to-skip-configuring-the-example.patch \
     git://github.com/tensorflow/tensorflow.git;name=tensorflow;nobranch=1;protocol=https;destsuffix=fetched/tensorflow \
     git://gitlab.com/libeigen/eigen.git;name=eigen;protocol=https;nobranch=1;destsuffix=fetched/eigen \
     git://github.com/pytorch/cpuinfo.git;name=cpuinfo;branch=main;protocol=https;destsuffix=fetched/cpuinfo \
@@ -126,6 +127,7 @@ EXTRA_OECMAKE = " \
     -DLITERT_MINOR_VERSION=${LITERT_MINOR_VERSION} \
     -DLITERT_PATCH_VERSION=${LITERT_PATCH_VERSION} \
     -DLITERT_BUILD_TESTS=OFF \
+    -DLITERT_TENSOR_BUILD_EXAMPLES=OFF \
     -DLITERT_ENABLE_SAMSUNG=OFF \
     -DLITERT_ENABLE_MEDIATEK=OFF \
     -DTFLITE_HOST_TOOLS_DIR=${LITERT_HOST_TOOLS_DIR} \
