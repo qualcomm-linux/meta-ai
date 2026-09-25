@@ -55,6 +55,7 @@ SRC_URI = " \
     file://0006-litert-c-add-soversion-install-rules-and-pkg-config-.patch \
     file://0008-Make-CMake-vendor-builds-opt-in-and-offline-safe.patch \
     file://0009-litert-core-accept-soname-versioned-plugin-libs.patch \
+    file://0010-tensor-add-an-option-to-skip-configuring-the-example.patch \
     git://github.com/tensorflow/tensorflow.git;name=tensorflow;nobranch=1;protocol=https;destsuffix=fetched/tensorflow \
     git://gitlab.com/libeigen/eigen.git;name=eigen;protocol=https;nobranch=1;destsuffix=fetched/eigen \
     git://github.com/pytorch/cpuinfo.git;name=cpuinfo;branch=main;protocol=https;destsuffix=fetched/cpuinfo \
@@ -126,6 +127,7 @@ EXTRA_OECMAKE = " \
     -DLITERT_MINOR_VERSION=${LITERT_MINOR_VERSION} \
     -DLITERT_PATCH_VERSION=${LITERT_PATCH_VERSION} \
     -DLITERT_BUILD_TESTS=OFF \
+    -DLITERT_TENSOR_BUILD_EXAMPLES=OFF \
     -DLITERT_ENABLE_SAMSUNG=OFF \
     -DLITERT_ENABLE_MEDIATEK=OFF \
     -DTFLITE_HOST_TOOLS_DIR=${LITERT_HOST_TOOLS_DIR} \
@@ -166,6 +168,17 @@ LITERT_FETCHCONTENT_OFFLINE_OECMAKE = " \
     -DFETCHCONTENT_SOURCE_DIR_GOOGLETEST=${FETCHCONTENT_LOCAL_DIR}/googletest \
     -DFETCHCONTENT_SOURCE_DIR_GOOGLEBENCHMARK=${FETCHCONTENT_LOCAL_DIR}/googlebenchmark \
 "
+
+# OpenGL-Registry and EGL-Registry have no top-level LICENSE file, so
+# OverridableFetchContent_Populate() falls back to downloading their
+# LICENSE_URL during do_configure, where network access is disabled. Seed the
+# file it would download; Khronos licenses both registries as Apache-2.0.
+do_unpack[postfuncs] += "litert_seed_khronos_licenses"
+litert_seed_khronos_licenses() {
+    for h in opengl_headers egl_headers; do
+        install -m 0644 ${COMMON_LICENSE_DIR}/Apache-2.0 ${FETCHCONTENT_LOCAL_DIR}/$h/${h}_LICENSE.txt
+    done
+}
 
 OECMAKE_TARGET_COMPILE = "litert_runtime_c_api_shared_lib run_model apply_plugin_main analyze_model extract_bytecode"
 OECMAKE_TARGET_COMPILE:append = "${@bb.utils.contains('PACKAGECONFIG', 'qualcomm', ' dispatch_api_qualcomm_so qnn_compiler_plugin', '', d)}"
