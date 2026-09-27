@@ -9,12 +9,12 @@ LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=0f7e3b1308cb5c00b372a6e78835732d"
 
 DEPENDS = " \
-    zlib \
+    abseil-cpp \
+    nlohmann-json \
     protobuf \
     protobuf-native \
     re2 \
-    abseil-cpp \
-    nlohmann-json \
+    zlib \
 "
 
 # Dependency versions and revisions are taken from cmake/deps.txt at the
