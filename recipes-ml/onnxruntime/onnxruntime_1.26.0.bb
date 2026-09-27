@@ -10,6 +10,7 @@ LIC_FILES_CHKSUM = "file://LICENSE;md5=0f7e3b1308cb5c00b372a6e78835732d"
 
 DEPENDS = " \
     abseil-cpp \
+    googletest \
     nlohmann-json \
     protobuf \
     protobuf-native \
