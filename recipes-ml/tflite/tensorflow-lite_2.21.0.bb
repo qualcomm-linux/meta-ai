@@ -31,9 +31,7 @@ TF_LITE_MAJOR = "${@d.getVar('PV').split('.')[0]}"
 TF_LITE_MINOR = "${@d.getVar('PV').split('.')[1]}"
 TF_LITE_PATCH = "0"
 
-SRCREV_FORMAT = "tensorflow_cpuinfo_farmhash_fft2d_fp16_fxdiv_gemmlowp_kleidiai_mlDtypes_openclHeaders_pthreadpool_ruy_vulkanHeaders_xnnpack"
-SRCREV_FORMAT:append:x86 = "_neon2sse"
-SRCREV_FORMAT:append:x86-64 = "_neon2sse"
+SRCREV_FORMAT = "tensorflow_cpuinfo_farmhash_fft2d_fp16_fxdiv_gemmlowp_kleidiai_mlDtypes_openclHeaders_pthreadpool_ruy_vulkanHeaders_xnnpack_neon2sse"
 
 # Main TensorFlow repository revision
 SRCREV_tensorflow = "a481b10260dfdf833a1b16007eead49c1d7febf3"
@@ -97,13 +95,7 @@ SRC_URI = " \
     git://github.com/ARM-software/kleidiai.git;name=kleidiai;destsuffix=${S}/kleidiai;branch=main;protocol=https \
     git://github.com/google/pthreadpool.git;name=pthreadpool;destsuffix=${S}/pthreadpool;branch=main;protocol=https \
     git://github.com/Maratyszcza/FXdiv.git;name=fxdiv;destsuffix=${S}/FXdiv;branch=master;protocol=https \
-"
-
-SRC_URI:append:class-target:x86 = " \
-    git://github.com/intel/ARM_NEON_2_x86_SSE.git;name=neon2sse;destsuffix=tensorflow-lite-${TF_LITE_VERSION}/third_party/neon2sse/;protocol=https;nobranch=1 \
-"
-SRC_URI:append:class-target:x86-64 = " \
-    git://github.com/intel/ARM_NEON_2_x86_SSE.git;name=neon2sse;destsuffix=tensorflow-lite-${TF_LITE_VERSION}/third_party/neon2sse/;protocol=https;nobranch=1 \
+    git://github.com/intel/ARM_NEON_2_x86_SSE.git;name=neon2sse;destsuffix=${S}/third_party/neon2sse/;protocol=https;nobranch=1 \
 "
 
 SRC_URI:append:class-target:arm = " \
@@ -161,9 +153,7 @@ do_configure:prepend() {
     ln -sf ${S}/third_party/vulkan_headers vulkan_headers
     ln -sf ${S}/third_party/xnnpack xnnpack
     ln -sf ${S}/fft2d/src/fft2d/fft2d fft2d
-    if [ -d "${S}/third_party/neon2sse" ]; then
-        ln -sf ${S}/third_party/neon2sse neon2sse
-    fi
+    ln -sf ${S}/third_party/neon2sse neon2sse
 
     mkdir -p opengl_headers
     cp ${COMMON_LICENSE_DIR}/Apache-2.0 opengl_headers/opengl_headers_LICENSE.txt
