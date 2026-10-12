@@ -1,0 +1,115 @@
+From 70ae075f04b3107f18c933745cd894fe1f51b472 Mon Sep 17 00:00:00 2001
+From: Tushar Darote <tdarote@qti.qualcomm.com>
+Date: Thu, 9 Jul 2026 14:17:40 +0530
+Subject: [PATCH 1/7] litert/qualcomm: Add QCS6490 (Kodiak) SoC support
+
+QCS6490 (Kodiak / RB3 Gen2) reports `socModel = 93` from QNN's
+`deviceGetPlatformInfo` and shares the V68 HTP architecture with
+QCM6490. Add the SoC ID to the `SnapdragonModel` enum and entries to
+the SoC table so on-device auto-detection succeeds.
+
+Also expose the names through:
+  * the supported-SoC CSV used by docs/tooling,
+  * the Python AOT target enum, and
+  * the parameterized compiler-plugin test (`kSupportedSocModels`).
+
+QCM6490 (soc_model id 35) was already used in the table but missing
+from the enum and the Python target list; add it for consistency so
+host-side AOT compilation via `--soc_model QCM6490`/`QCS6490` works
+on both x86 and aarch64.
+
+Upstream-Status: Submitted [https://github.com/google-ai-edge/LiteRT/pull/8345]
+Signed-off-by: Tushar Darote <tdarote@qti.qualcomm.com>
+---
+ litert/python/aot/vendors/qualcomm/target.py                | 2 ++
+ .../vendors/qualcomm/compiler/qnn_compiler_plugin_test.cc   | 2 ++
+ litert/vendors/qualcomm/core/schema/soc_table.cc            | 6 ++++++
+ litert/vendors/qualcomm/core/schema/soc_table.h             | 2 ++
+ litert/vendors/qualcomm/supported_soc.csv                   | 1 +
+ 5 files changed, 13 insertions(+)
+
+diff --git a/litert/python/aot/vendors/qualcomm/target.py b/litert/python/aot/vendors/qualcomm/target.py
+index 8fb40dc2..60a5618c 100644
+--- a/litert/python/aot/vendors/qualcomm/target.py
++++ b/litert/python/aot/vendors/qualcomm/target.py
+@@ -27,6 +27,8 @@ class SocModel(StrEnum):
+ 
+   ALL = "ALL"
+ 
++  QCM6490 = "QCM6490"
++  QCS6490 = "QCS6490"
+   SA8255 = "SA8255"
+   SA8295 = "SA8295"
+   SM8350 = "SM8350"
+diff --git a/litert/vendors/qualcomm/compiler/qnn_compiler_plugin_test.cc b/litert/vendors/qualcomm/compiler/qnn_compiler_plugin_test.cc
+index 14ae51d6..bfc30d86 100644
+--- a/litert/vendors/qualcomm/compiler/qnn_compiler_plugin_test.cc
++++ b/litert/vendors/qualcomm/compiler/qnn_compiler_plugin_test.cc
+@@ -170,6 +170,8 @@ const auto kSupportedOps =
+                     );
+ 
+ const auto kSupportedSocModels = Values(
++    "QCM6490",
++    "QCS6490",
+     "SA8295",
+     "SA8255",
+     "SM8350",
+diff --git a/litert/vendors/qualcomm/core/schema/soc_table.cc b/litert/vendors/qualcomm/core/schema/soc_table.cc
+index e6263eae..ba4fc8ee 100644
+--- a/litert/vendors/qualcomm/core/schema/soc_table.cc
++++ b/litert/vendors/qualcomm/core/schema/soc_table.cc
+@@ -24,6 +24,9 @@ constexpr SocInfo kSocInfos[] = {
+     {SocInfo("SM8350", SnapdragonModel::SM8350, DspArch::V68,
+              4  // vtcm_size_in_mb
+              )},
++    {SocInfo("QCM6490", SnapdragonModel::QCM6490, DspArch::V68,
++             8  // vtcm_size_in_mb
++             )},
+     {SocInfo("SM8450", SnapdragonModel::SM8450, DspArch::V69,
+              8  // vtcm_size_in_mb
+              )},
+@@ -60,6 +63,9 @@ constexpr SocInfo kSocInfos[] = {
+     {SocInfo("SM8850", SnapdragonModel::SM8850, DspArch::V81,
+              8  // vtcm_size_in_mb
+              )},
++    {SocInfo("QCS6490", SnapdragonModel::QCS6490, DspArch::V68,
++             8  // vtcm_size_in_mb
++             )},
+     {SocInfo("SAR2230P", SnapdragonModel::SAR2230P, DspArch::V81,
+              4  // vtcm_size_in_mb
+              )},
+diff --git a/litert/vendors/qualcomm/core/schema/soc_table.h b/litert/vendors/qualcomm/core/schema/soc_table.h
+index 49bee51f..b68b873b 100644
+--- a/litert/vendors/qualcomm/core/schema/soc_table.h
++++ b/litert/vendors/qualcomm/core/schema/soc_table.h
+@@ -12,6 +12,7 @@ enum class SnapdragonModel {
+   SM6350 = 29,
+   SA8295 = 39,
+   SM8350 = 30,
++  QCM6490 = 35,
+   SM8450 = 36,
+   SM8475 = 42,
+   SM8550 = 43,
+@@ -25,6 +26,7 @@ enum class SnapdragonModel {
+   QCS9100 = 77,
+   QCS8300 = 82,
+   SM8850 = 87,
++  QCS6490 = 93,
+   SAR2230P = 95,
+   SW6100 = 96,
+ };
+diff --git a/litert/vendors/qualcomm/supported_soc.csv b/litert/vendors/qualcomm/supported_soc.csv
+index 90d11e0b..b4fa81ba 100644
+--- a/litert/vendors/qualcomm/supported_soc.csv
++++ b/litert/vendors/qualcomm/supported_soc.csv
+@@ -35,6 +35,7 @@ Qualcomm,SM7350,v68,32
+ Qualcomm,SM7325,v68,35
+ Qualcomm,SM7315,v68,38
+ Qualcomm,QCM6490,v68,35
++Qualcomm,QCS6490,v68,35
+ Qualcomm,SDM865,v66,21
+ Qualcomm,SM8250,v66,21
+ Qualcomm,SM8150,v66,
+-- 
+2.43.0
+

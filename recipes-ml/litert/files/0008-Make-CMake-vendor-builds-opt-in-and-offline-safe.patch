@@ -1,0 +1,184 @@
+From 2660176faff7940fd45ebdfde32360a9b009d197 Mon Sep 17 00:00:00 2001
+From: Tushar Darote <tdarote@qti.qualcomm.com>
+Date: Wed, 15 Jul 2026 13:50:48 +0530
+Subject: [PATCH] Make CMake vendor builds opt-in and offline-safe
+
+The vendor dispatch build (MediaTek/QNN/Samsung) in
+litert/vendors/CMakeLists.txt implicitly downloaded SDK headers and
+enabled a vendor whenever those headers happened to be present. This
+made the build non-deterministic across environments:
+
+- On networked builds (e.g. Docker), the hardcoded default header URLs
+  were fetched at configure time and the vendor was force-enabled via
+  set(LITERT_ENABLE_<VENDOR> ON ... FORCE), so vendors were compiled
+  even when the user never asked for them.
+- On air-gapped builds (e.g. Yocto), the same file(DOWNLOAD ...) had no
+  STATUS check, so it failed silently, headers stayed missing, and the
+  vendor was quietly skipped.
+
+The only effective difference between the two was network availability
+at configure time, not user intent. Samsung additionally defaulted to
+ON, inconsistent with the other vendors.
+
+Make vendor enablement explicit, matching the existing TFLITE_ENABLE_* /
+LITERT_ENABLE_* convention:
+
+- Add LITERT_ENABLE_MEDIATEK / LITERT_ENABLE_QUALCOMM /
+  LITERT_ENABLE_SAMSUNG options, all defaulting to OFF and evaluated
+  before any header resolution.
+- Only fetch a vendor's SDK headers when that vendor is enabled and no
+  <VENDOR>_HEADERS_DIR was supplied.
+- Providing -D<VENDOR>_HEADERS_DIR=<path> auto-enables the vendor, so
+  offline builds can point at a prebuilt SDK and never trigger a
+  download.
+- Check file(DOWNLOAD ... STATUS) and fail with an actionable message
+  pointing at -D<VENDOR>_HEADERS_DIR.
+- Remove the implicit "headers detected -> force enable" logic.
+
+A plain configure with no vendor flags now behaves identically in
+networked and air-gapped environments: vendors are not compiled and no
+download is attempted unless explicitly requested.
+
+Note: builds that previously relied on Samsung being enabled by default
+must now pass -DLITERT_ENABLE_SAMSUNG=ON.
+
+Upstream-Status: Submitted [https://github.com/google-ai-edge/LiteRT/pull/8712]
+Signed-off-by: Tushar Darote <tdarote@qti.qualcomm.com>
+---
+ litert/vendors/CMakeLists.txt | 72 ++++++++++++++++++++++++++---------
+ 1 file changed, 53 insertions(+), 19 deletions(-)
+
+diff --git a/litert/vendors/CMakeLists.txt b/litert/vendors/CMakeLists.txt
+index 969284df4..1a6b3428f 100644
+--- a/litert/vendors/CMakeLists.txt
++++ b/litert/vendors/CMakeLists.txt
+@@ -20,7 +20,24 @@ set(NEUROPILOT_HEADERS_DIR "" CACHE PATH "Path to pre-downloaded NeuroPilot head
+ set(QAIRT_HEADERS_DIR "" CACHE PATH "Path to pre-downloaded QAIRT/QNN headers (root containing Qnn*.h)")
+ set(LITECORE_HEADERS_DIR "" CACHE PATH "Path to Samsung AI LiteCore headers (root containing graph_wrapper_api.h)")
+ 
+-if(NOT NEUROPILOT_HEADERS_DIR)
++# Vendors are strictly opt-in (LITERT_ENABLE_*, default OFF) so no SDK headers
++# are fetched and no vendor is built unless explicitly requested. Passing a
++# pre-downloaded *_HEADERS_DIR auto-enables that vendor for offline builds.
++option(LITERT_ENABLE_MEDIATEK "Enable MediaTek dispatch build (requires NeuroPilot SDK headers)" OFF)
++option(LITERT_ENABLE_QUALCOMM "Enable Qualcomm dispatch build (requires QNN SDK headers/libs)" OFF)
++option(LITERT_ENABLE_SAMSUNG "Enable Samsung NPU build (requires AI LiteCore headers)" OFF)
++
++if(NEUROPILOT_HEADERS_DIR AND NOT LITERT_ENABLE_MEDIATEK)
++  set(LITERT_ENABLE_MEDIATEK ON CACHE BOOL "" FORCE)
++endif()
++if(QAIRT_HEADERS_DIR AND NOT LITERT_ENABLE_QUALCOMM)
++  set(LITERT_ENABLE_QUALCOMM ON CACHE BOOL "" FORCE)
++endif()
++if(LITECORE_HEADERS_DIR AND NOT LITERT_ENABLE_SAMSUNG)
++  set(LITERT_ENABLE_SAMSUNG ON CACHE BOOL "" FORCE)
++endif()
++
++if(LITERT_ENABLE_MEDIATEK AND NOT NEUROPILOT_HEADERS_DIR)
+   if(NOT NEUROPILOT_HEADERS_URL AND NOT NEUROPILOT_GIT_REPO)
+     set(NEUROPILOT_HEADERS_URL "https://s3.ap-southeast-1.amazonaws.com/mediatek.neuropilot.com/66f2c33a-2005-4f0b-afef-2053c8654e4f.gz")
+   endif()
+@@ -58,14 +75,19 @@ if(NOT NEUROPILOT_HEADERS_DIR)
+ endif()
+ 
+ # LINT.IfChange(qairt_headers_dir)
+-if(NOT QAIRT_HEADERS_DIR)
++if(LITERT_ENABLE_QUALCOMM AND NOT QAIRT_HEADERS_DIR)
+   if(NOT QAIRT_HEADERS_URL AND NOT QAIRT_GIT_REPO)
+     set(QAIRT_HEADERS_URL "https://softwarecenter.qualcomm.com/api/download/software/sdks/Qualcomm_AI_Runtime_Community/All/2.47.0.260601/v2.47.0.260601.zip")
+     set(QAIRT_HEADERS_SUBDIR "qairt/2.47.0.260601")
+   endif()
+   if(QAIRT_HEADERS_URL)
+     set(_qnn_archive "${CMAKE_BINARY_DIR}/_deps/qnn_headers.zip")
+-    file(DOWNLOAD "${QAIRT_HEADERS_URL}" "${_qnn_archive}" SHOW_PROGRESS)
++    file(DOWNLOAD "${QAIRT_HEADERS_URL}" "${_qnn_archive}" SHOW_PROGRESS STATUS _qnn_dl_status)
++    list(GET _qnn_dl_status 0 _qnn_dl_code)
++    if(NOT _qnn_dl_code EQUAL 0)
++      message(FATAL_ERROR "Failed to download QAIRT/QNN headers from ${QAIRT_HEADERS_URL}: ${_qnn_dl_status}. "
++        "Provide -DQAIRT_HEADERS_DIR=<path> for offline builds.")
++    endif()
+     set(_qnn_extract_dir "${CMAKE_BINARY_DIR}/_deps/qnn_headers")
+     file(MAKE_DIRECTORY "${_qnn_extract_dir}")
+     file(ARCHIVE_EXTRACT INPUT "${_qnn_archive}" DESTINATION "${_qnn_extract_dir}")
+@@ -102,13 +124,18 @@ endif()
+ # )
+ 
+ # LINT.IfChange(litecore_headers_dir)
+-if(NOT LITECORE_HEADERS_DIR)
++if(LITERT_ENABLE_SAMSUNG AND NOT LITECORE_HEADERS_DIR)
+   if(NOT LITECORE_HEADERS_URL AND NOT LITECORE_GIT_REPO)
+     set(LITECORE_HEADERS_URL "https://soc-developer.semiconductor.samsung.com/api/v1/resource/download-file/1.1.0/ai-litecore-ubuntu2404-v1.1.0.tar.gz")
+   endif()
+   if(LITECORE_HEADERS_URL)
+     set(_litecore_archive "${CMAKE_BINARY_DIR}/_deps/litecore_headers.tar.gz")
+-    file(DOWNLOAD "${LITECORE_HEADERS_URL}" "${_litecore_archive}" SHOW_PROGRESS)
++    file(DOWNLOAD "${LITECORE_HEADERS_URL}" "${_litecore_archive}" SHOW_PROGRESS STATUS _litecore_dl_status)
++    list(GET _litecore_dl_status 0 _litecore_dl_code)
++    if(NOT _litecore_dl_code EQUAL 0)
++      message(FATAL_ERROR "Failed to download Samsung AI LiteCore headers from ${LITECORE_HEADERS_URL}: ${_litecore_dl_status}. "
++        "Provide -DLITECORE_HEADERS_DIR=<path> for offline builds.")
++    endif()
+     set(_litecore_extract_dir "${CMAKE_BINARY_DIR}/_deps/litecore_headers")
+     file(MAKE_DIRECTORY "${_litecore_extract_dir}")
+     file(ARCHIVE_EXTRACT INPUT "${_litecore_archive}" DESTINATION "${_litecore_extract_dir}")
+@@ -303,10 +330,15 @@ check_include_file_cxx("neuron/api/NeuronAdapter.h" HAVE_MEDIATEK_NEURON_HDR)
+ if(NEUROPILOT_HEADERS_DIR AND EXISTS "${NEUROPILOT_HEADERS_DIR}/neuron/api/NeuronAdapter.h")
+   set(HAVE_MEDIATEK_NEURON_HDR TRUE)
+ endif()
+-if(HAVE_MEDIATEK_NEURON_HDR)
+-  _litert_add_dispatch_so(MediaTek "mediatek/dispatch" "MediaTek")
++if(LITERT_ENABLE_MEDIATEK)
++  if(HAVE_MEDIATEK_NEURON_HDR)
++    _litert_add_dispatch_so(MediaTek "mediatek/dispatch" "MediaTek")
++  else()
++    message(FATAL_ERROR "LITERT_ENABLE_MEDIATEK=ON but neuron/api/NeuronAdapter.h not found. "
++      "Provide -DNEUROPILOT_HEADERS_DIR=<path> (or -DNEUROPILOT_HEADERS_URL/-DNEUROPILOT_GIT_REPO).")
++  endif()
+ else()
+-  message(STATUS "Skipping MediaTek dispatch: neuron/api/NeuronAdapter.h not found")
++  message(STATUS "Skipping MediaTek dispatch: LITERT_ENABLE_MEDIATEK is OFF")
+ endif()
+ # Intel OpenVINO
+ check_include_file_cxx("openvino/openvino.hpp" HAVE_OPENVINO_HDR)
+@@ -317,25 +349,27 @@ else()
+ endif()
+ 
+ # Qualcomm
+-option(LITERT_ENABLE_QUALCOMM "Enable Qualcomm dispatch build (requires QNN SDK headers/libs)" OFF)
+-if(QAIRT_HEADERS_DIR AND NOT LITERT_ENABLE_QUALCOMM)
+-  message(STATUS "Enabling Qualcomm dispatch: QNN headers detected at ${QAIRT_HEADERS_DIR}")
+-  set(LITERT_ENABLE_QUALCOMM ON CACHE BOOL "" FORCE)
+-endif()
+ if(LITERT_ENABLE_QUALCOMM)
++  if(NOT QAIRT_HEADERS_DIR)
++    message(FATAL_ERROR "LITERT_ENABLE_QUALCOMM=ON but QNN headers were not found. "
++      "Provide -DQAIRT_HEADERS_DIR=<path> (or -DQAIRT_HEADERS_URL/-DQAIRT_GIT_REPO).")
++  endif()
++  message(STATUS "Enabling Qualcomm dispatch: QNN headers at ${QAIRT_HEADERS_DIR}")
+   # Use modular CMake structure for Qualcomm
+   add_subdirectory(qualcomm)
++else()
++  message(STATUS "Skipping Qualcomm dispatch: LITERT_ENABLE_QUALCOMM is OFF")
+ endif()
+ 
+ # Samsung
+-option(LITERT_ENABLE_SAMSUNG "Enable Samsung NPU build" ON)
+-if(LITECORE_HEADERS_DIR AND NOT LITERT_ENABLE_SAMSUNG)
+-  message(STATUS "Enabling Samsung dispatch: Samsung headers detected at ${LITECORE_HEADERS_DIR}")
+-  set(LITERT_ENABLE_SAMSUNG ON CACHE BOOL "" FORCE)
+-endif()
+ if(LITERT_ENABLE_SAMSUNG)
++  if(NOT LITECORE_HEADERS_DIR)
++    message(FATAL_ERROR "LITERT_ENABLE_SAMSUNG=ON but AI LiteCore headers were not found. "
++      "Provide -DLITECORE_HEADERS_DIR=<path> (or -DLITECORE_HEADERS_URL/-DLITECORE_GIT_REPO).")
++  endif()
++  message(STATUS "Enabling Samsung dispatch: AI LiteCore headers at ${LITECORE_HEADERS_DIR}")
+   # Use modular CMake structure for Samsung
+   add_subdirectory(samsung)
+ else()
+-  message(STATUS "Skipping Samsung dispatch: LITECORE_HEADERS_DIR not set")
++  message(STATUS "Skipping Samsung dispatch: LITERT_ENABLE_SAMSUNG is OFF")
+ endif()
+-- 
+2.43.0
+

@@ -1,0 +1,54 @@
+From 09751d0dbf307096fa272674baa827b047b73b69 Mon Sep 17 00:00:00 2001
+From: Tushar Darote <tdarote@qti.qualcomm.com>
+Date: Thu, 9 Jul 2026 14:17:40 +0530
+Subject: [PATCH 3/7] litert: honor FP16_SOURCE_DIR for the fp16 headers
+ include path
+
+The top-level `litert/CMakeLists.txt` only adds the FP16 headers to the
+include path when they are found at the hardcoded location
+`${CMAKE_BINARY_DIR}/FP16-source/include`. That path is only populated
+when the bundled TFLite build downloads FP16 itself (via its
+`cmake/DownloadFP16.cmake` ExternalProject).
+
+When FP16 is instead provided out-of-band through the documented
+`FP16_SOURCE_DIR` variable -- which `tflite/CMakeLists.txt` already
+consumes to skip the download -- the `${CMAKE_BINARY_DIR}/FP16-source`
+directory never exists, so the `if(EXISTS ...)` check is false and the
+FP16 include directory is never added. LiteRT sources that include
+"fp16.h" (e.g. tflite/delegates/gpu/common/types.h pulled in by
+litert/core/environment.cc) then fail to compile with:
+
+    fatal error: fp16.h: No such file or directory
+
+This is the common case for offline / air-gapped / sysroot-based /
+cross-compile builds that pre-provide all third-party sources and set
+`-DFP16_SOURCE_DIR=...`.
+
+Add a fallback that also adds `${FP16_SOURCE_DIR}/include` to the
+include path when that variable is set, mirroring how the bundled TFLite
+build already treats FP16_SOURCE_DIR. Behavior when FP16 is downloaded
+into FP16-source is unchanged.
+
+Upstream-Status: Submitted [https://github.com/google-ai-edge/LiteRT/pull/8464]
+Signed-off-by: Tushar Darote <tdarote@qti.qualcomm.com>
+---
+ litert/CMakeLists.txt | 3 +++
+ 1 file changed, 3 insertions(+)
+
+diff --git a/litert/CMakeLists.txt b/litert/CMakeLists.txt
+index 78cc345b..0e329870 100644
+--- a/litert/CMakeLists.txt
++++ b/litert/CMakeLists.txt
+@@ -203,6 +203,9 @@ endif()
+ if(EXISTS "${CMAKE_BINARY_DIR}/FP16-source/include")
+     include_directories(${CMAKE_BINARY_DIR}/FP16-source/include)
+ endif()
++if(FP16_SOURCE_DIR AND EXISTS "${FP16_SOURCE_DIR}/include")
++    include_directories(${FP16_SOURCE_DIR}/include)
++endif()
+ 
+ # Find FlatBuffers
+ #
+-- 
+2.43.0
+

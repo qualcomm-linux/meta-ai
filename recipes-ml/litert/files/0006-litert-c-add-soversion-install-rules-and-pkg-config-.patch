@@ -1,0 +1,121 @@
+From 34e38ff508d870dd0333b4a7b79d8af896a7094b Mon Sep 17 00:00:00 2001
+From: Tushar Darote <tdarote@qti.qualcomm.com>
+Date: Thu, 9 Jul 2026 14:17:40 +0530
+Subject: [PATCH 6/7] litert/c: add soversion, install rules and pkg-config to
+ the LiteRT C API
+
+The LiteRT C API shared library (libLiteRt.so) is built with no version
+information, so it installs as an unversioned libLiteRt.so carrying a
+plain "libLiteRt.so" SONAME. Distributions expect a versioned shared
+object (libLiteRt.so.MAJOR.MINOR.PATCH with a libLiteRt.so.MAJOR SONAME
+and a libLiteRt.so development symlink), matching the convention
+already used by the TensorFlow Lite C API (libtensorflowlite_c).
+
+Introduce LITERT_{MAJOR,MINOR,PATCH}_VERSION cache variables and set
+the VERSION and SOVERSION target properties on
+litert_runtime_c_api_shared_lib inside an if(LITERT_MAJOR_VERSION) guard
+so CMake emits the versioned shared object together with its SONAME and
+development symlinks only when the version is explicitly supplied at
+configure time. This keeps the change opt-in and backwards compatible.
+
+Also add CMake install() rules so the library, its public headers and a
+generated pkg-config file are installed into the standard locations:
+
+  * libLiteRt.so  -> ${CMAKE_INSTALL_LIBDIR}  (Runtime component)
+  * development namelink  -> same dir  (Development component)
+  * litert/c/*.h  -> ${CMAKE_INSTALL_INCLUDEDIR}/litert/c (public API only)
+  * build_config.h        -> ${CMAKE_INSTALL_INCLUDEDIR}/litert/build_common
+  * litert.pc             -> ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+
+The pkg-config file is generated from a new litert.pc.in template and
+allows downstream projects to locate the library and its headers via
+pkg-config(1) without any CMake-specific knowledge.
+
+Upstream-Status: Submitted [https://github.com/google-ai-edge/LiteRT/pull/8466]
+Signed-off-by: Tushar Darote <tdarote@qti.qualcomm.com>
+---
+ litert/c/CMakeLists.txt | 38 ++++++++++++++++++++++++++++++++++++++
+ litert/c/litert.pc.in   | 11 +++++++++++
+ 2 files changed, 49 insertions(+)
+ create mode 100644 litert/c/litert.pc.in
+
+diff --git a/litert/c/CMakeLists.txt b/litert/c/CMakeLists.txt
+index c776b967..a6325551 100644
+--- a/litert/c/CMakeLists.txt
++++ b/litert/c/CMakeLists.txt
+@@ -15,6 +15,11 @@
+ # LiteRT C API
+ cmake_minimum_required(VERSION 3.20)
+ 
++set(LITERT_MAJOR_VERSION "" CACHE STRING "LiteRt major version")
++set(LITERT_MINOR_VERSION "" CACHE STRING "LiteRt minor version")
++set(LITERT_PATCH_VERSION "" CACHE STRING "LiteRt patch version")
++set(LITERT_VERSION "${LITERT_MAJOR_VERSION}.${LITERT_MINOR_VERSION}.${LITERT_PATCH_VERSION}")
++
+ add_subdirectory(internal)
+ 
+ set(LITERT_C_PUBLIC_HEADERS
+@@ -246,6 +251,12 @@ set_target_properties(litert_runtime_c_api_shared_lib PROPERTIES
+     POSITION_INDEPENDENT_CODE ON
+ )
+ set_target_properties(litert_runtime_c_api_shared_lib PROPERTIES INTERFACE_LINK_LIBRARIES "")
++if(LITERT_MAJOR_VERSION)
++    set_target_properties(litert_runtime_c_api_shared_lib PROPERTIES
++        VERSION   "${LITERT_VERSION}"
++        SOVERSION "${LITERT_MAJOR_VERSION}"
++    )
++endif()
+ target_compile_options(litert_runtime_c_api_shared_lib PRIVATE
+     -fno-exceptions -fno-unwind-tables -fno-asynchronous-unwind-tables
+     -ffunction-sections -fdata-sections
+@@ -396,3 +407,31 @@ if(LITERT_PLATFORM_ANDROID)
+     find_library(ANDROID_GLESV2_LIB GLESv2)
+     target_link_libraries(litert_runtime_c_api_shared_lib PRIVATE ${LOG_LIB} android log nativewindow ${ANDROID_EGL_LIB} ${ANDROID_GLESV3_LIB} ${ANDROID_GLESV2_LIB})
+ endif()
++
++install(TARGETS litert_runtime_c_api_shared_lib
++    LIBRARY
++        DESTINATION ${CMAKE_INSTALL_LIBDIR}
++        COMPONENT   Runtime
++    NAMELINK_COMPONENT Development
++)
++
++install(DIRECTORY ${CMAKE_CURRENT_BINARY_DIR}/include/litert/c/
++    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/litert/c
++    COMPONENT   Development
++    FILES_MATCHING PATTERN "*.h"
++)
++
++install(FILES ${LITERT_BUILD_COMMON_GENERATED_DIR}/build_config.h
++    DESTINATION ${CMAKE_INSTALL_INCLUDEDIR}/litert/build_common
++    COMPONENT   Development
++)
++
++configure_file(
++    ${CMAKE_CURRENT_SOURCE_DIR}/litert.pc.in
++    ${CMAKE_CURRENT_BINARY_DIR}/litert.pc
++    @ONLY
++)
++install(FILES ${CMAKE_CURRENT_BINARY_DIR}/litert.pc
++    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
++    COMPONENT   Development
++)
+diff --git a/litert/c/litert.pc.in b/litert/c/litert.pc.in
+new file mode 100644
+index 00000000..cc76dc02
+--- /dev/null
++++ b/litert/c/litert.pc.in
+@@ -0,0 +1,11 @@
++prefix=@CMAKE_INSTALL_PREFIX@
++exec_prefix=${prefix}
++libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
++includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
++
++Name: litert
++Description: LiteRT (Google AI Edge runtime) shared library
++Version: @LITERT_VERSION@
++Libs: -L${libdir} -lLiteRt
++Cflags: -I${includedir}
++
+-- 
+2.43.0
