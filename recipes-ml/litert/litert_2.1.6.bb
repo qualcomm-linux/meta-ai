@@ -167,6 +167,17 @@ LITERT_FETCHCONTENT_OFFLINE_OECMAKE = " \
     -DFETCHCONTENT_SOURCE_DIR_GOOGLEBENCHMARK=${FETCHCONTENT_LOCAL_DIR}/googlebenchmark \
 "
 
+# OpenGL-Registry and EGL-Registry have no top-level LICENSE file, so
+# OverridableFetchContent_Populate() falls back to downloading their
+# LICENSE_URL during do_configure, where network access is disabled. Seed the
+# file it would download; Khronos licenses both registries as Apache-2.0.
+do_unpack[postfuncs] += "litert_seed_khronos_licenses"
+litert_seed_khronos_licenses() {
+    for h in opengl_headers egl_headers; do
+        install -m 0644 ${COMMON_LICENSE_DIR}/Apache-2.0 ${FETCHCONTENT_LOCAL_DIR}/$h/${h}_LICENSE.txt
+    done
+}
+
 OECMAKE_TARGET_COMPILE = "litert_runtime_c_api_shared_lib run_model apply_plugin_main analyze_model extract_bytecode"
 OECMAKE_TARGET_COMPILE:append = "${@bb.utils.contains('PACKAGECONFIG', 'qualcomm', ' dispatch_api_qualcomm_so qnn_compiler_plugin', '', d)}"
 
