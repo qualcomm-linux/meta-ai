@@ -40,6 +40,9 @@ kas-container build kas/base.yml:kas/qemuarm64.yml
 ```
 
 `kas/base.yml` selects the `nodistro` distribution and common layer set.
+On this branch, it pins OpenEmbedded dependencies to `wrynose` and BitBake
+to `2.18`. Preserve those pins and `LAYERSERIES_COMPAT_ai = "wrynose"`
+when backporting from `main`.
 `kas/qemuarm64.yml` selects the `qemuarm64` machine. For virtualization-related
 changes, add `kas/virt.yml` as the final overlay:
 
@@ -64,9 +67,9 @@ specific recipe or component.
 
 Follow [CONTRIBUTING.md](CONTRIBUTING.md):
 
-1. Base branch: `main`.
+1. Base branch: `wrynose` for backports on this branch.
 1. Use a topic branch with a focused scope.
-1. Rebase on latest upstream `main`.
+1. Rebase on latest upstream `wrynose`.
 1. Open a GitHub pull request.
 1. Iterate in PR discussion.
 

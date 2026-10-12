@@ -8,19 +8,22 @@ For baseline OpenEmbedded / Yocto Project patch expectations, refer to
 ## Branching strategy
 
 Develop changes on branches based on `main` and open pull requests against
-`main`.
+`main`. For backports to `wrynose`, base the topic branch on the latest
+`wrynose` and target that branch instead. Use `git cherry-pick -x` to record
+the source commits, and preserve the release-specific layer compatibility
+and kas dependency pins.
 
 ## Submitting a pull request
 
 1. Read our [code of conduct](CODE-OF-CONDUCT.md) and [license](LICENSE.txt).
 1. [Fork](https://github.com/qualcomm-linux/meta-ai/fork) and clone the
    repository.
-1. Create a branch from `main`.
+1. Create a branch from `main` (or `wrynose` for a backport).
 1. Add an `upstream` remote to keep your branch current with
    `qualcomm-linux/meta-ai`.
 1. Make your changes and run the checks listed below.
 1. Commit with DCO sign-off (`git commit -s`).
-1. Rebase on top of latest upstream `main`.
+1. Rebase on top of the latest upstream target branch.
 1. Push your branch and open a pull request.
 
 Keep each pull request focused on one logical change. If you have independent
