@@ -23,6 +23,7 @@ DEPENDS = " \
 # runs with FETCHCONTENT_FULLY_DISCONNECTED=ON.
 SRC_URI = "gitsm://github.com/microsoft/onnxruntime.git;protocol=https;branch=rel-${PV};name=ort \
     file://0001-cmake-fix-GCC-16-build.patch \
+    file://0002-cmake-install-onnxruntime_perf_test-binary.patch \
     git://github.com/HowardHinnant/date.git;protocol=https;nobranch=1;name=date;tag=v3.0.1;destsuffix=date \
     git://github.com/boostorg/mp11.git;protocol=https;nobranch=1;name=mp11;tag=boost-1.82.0;destsuffix=mp11 \
     git://github.com/pytorch/cpuinfo.git;protocol=https;nobranch=1;name=pytorch_cpuinfo;destsuffix=pytorch_cpuinfo \
@@ -66,7 +67,7 @@ EXTRA_OECMAKE = " \
     -DFETCHCONTENT_SOURCE_DIR_EIGEN3=${WORKDIR}/sources/eigen3 \
     -DONNX_CUSTOM_PROTOC_EXECUTABLE=${STAGING_BINDIR_NATIVE}/protoc \
     -DONNX_BUILD_TESTS=OFF \
-    -Donnxruntime_BUILD_UNIT_TESTS=OFF \
+    -Donnxruntime_BUILD_UNIT_TESTS=ON \
     -Donnxruntime_RUN_ONNX_TESTS=OFF \
 "
 
