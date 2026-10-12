@@ -1,0 +1,40 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Koen Kooi <koen.kooi@oss.qualcomm.com>
+Date: Thu, 24 Sep 2026 21:45:15 +0200
+Subject: [PATCH] tensor: add an option to skip configuring the examples
+
+Configuring tensor/examples/segmentation downloads a prebuilt GPU
+accelerator from an unversioned ".../binaries/latest/" URL and fetches
+stb with FetchContent. Both need network access at configure time, which
+offline and reproducible builds (distribution packaging, sandboxed CI)
+do not have, even when only the runtime libraries are built.
+
+Add LITERT_TENSOR_BUILD_EXAMPLES, defaulting to ON so nothing changes for
+existing users, to let such builds leave the examples out.
+
+Upstream-Status: Pending
+Signed-off-by: Koen Kooi <koen.kooi@oss.qualcomm.com>
+---
+ tensor/CMakeLists.txt | 6 ++++--
+ 1 file changed, 4 insertions(+), 2 deletions(-)
+
+diff --git a/tensor/CMakeLists.txt b/tensor/CMakeLists.txt
+index 7f6a4d9..b411c1e 100644
+--- a/tensor/CMakeLists.txt
++++ b/tensor/CMakeLists.txt
+@@ -125,10 +125,12 @@ target_link_libraries(litert_tensor_api_tflite_backend
+         absl::span
+ )
+ 
+-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/segmentation/CMakeLists.txt")
++option(LITERT_TENSOR_BUILD_EXAMPLES "Configure the tensor API examples" ON)
++
++if(LITERT_TENSOR_BUILD_EXAMPLES AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/segmentation/CMakeLists.txt")
+     add_subdirectory(examples/segmentation)
+ endif()
+ 
+-if(EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/gemma3/CMakeLists.txt")
++if(LITERT_TENSOR_BUILD_EXAMPLES AND EXISTS "${CMAKE_CURRENT_SOURCE_DIR}/examples/gemma3/CMakeLists.txt")
+     add_subdirectory(examples/gemma3)
+ endif()
+\ No newline at end of file
