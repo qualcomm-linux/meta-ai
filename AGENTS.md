@@ -47,6 +47,14 @@ changes, add `kas/virt.yml` as the final overlay:
 kas-container build kas/base.yml:kas/qemuarm64.yml:kas/virt.yml
 ```
 
+CI builds every recipe in this layer with the same files plus two overlays:
+`kas/ci.yml` bounds parallelism for the CI runners and `kas/world.yml` selects
+the layer's recipes as a `world` build. To reproduce a CI build:
+
+```sh
+kas-container build kas/base.yml:kas/qemuarm64.yml:kas/ci.yml:kas/world.yml
+```
+
 Do not execute `.github/workflows/qcom-preflight-checks.yml` locally; GitHub
 Actions runs that workflow for pull requests. Run the smallest relevant
 targeted validation in addition to the baseline build when a change affects a

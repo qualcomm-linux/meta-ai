@@ -28,13 +28,13 @@ require_dir "$WORK_DIR"
 BUILDDIR=$(mktemp -p "$WORK_DIR" -d -t build-oe-check-layer-XXXX)
 # oe-init-build-env is not nounset-safe.
 set +u
-source "$WORK_DIR/oe-core/oe-init-build-env" "$BUILDDIR"
+source "$WORK_DIR/openembedded-core/oe-init-build-env" "$BUILDDIR"
 set -u
 git -c advice.detachedHead=false -c init.defaultBranch=main clone --quiet --shared "$REPO_DIR" meta-ai
 
 exec yocto-check-layer \
     meta-ai \
     --no-auto \
-    --dependency "$WORK_DIR/oe-core/meta" \
+    --dependency "$WORK_DIR/openembedded-core/meta" \
     --dependency "$WORK_DIR/meta-openembedded/meta-oe" \
     --no-auto-dependency
