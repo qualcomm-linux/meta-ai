@@ -1,0 +1,76 @@
+From: Koen Kooi <koen.kooi@oss.qualcomm.com>
+Subject: [PATCH] ggml-cpu: guard NEON fp16 load() specialization and dispatch
+ on real hw fp16 conversion support
+
+sgemm.cpp's load() specialization converting ggml_fp16_t to float32x4_t
+via vcvt_f32_f16() was gated only on __ARM_NEON, which is defined on any
+NEON-capable target regardless of whether the FPU variant actually
+implements the fp16<->fp32 hardware conversion instruction. On such
+targets (e.g. qemuarm's default cortexa15t2hf-neon tune, built with
+-mfpu=neon rather than -mfpu=neon-vfpv4/neon-fp16), arm_neon.h's
+always_inline vcvt_f32_f16() cannot be inlined and gcc hard-errors with
+"target specific option mismatch".
+
+The FIXME comment at this spot suggested gating on
+__ARM_FEATURE_FP16_VECTOR_ARITHMETIC, matching every other fp16-NEON
+code path in this file (madd, hsum, and the tinyBLAS kernel-selection
+dispatch). That guard is correct for the float16x8_t load() (used by
+the AArch64/ARMv8.2 fp16-vector-arithmetic tinyBLAS path), so it is
+applied there. But __ARM_FEATURE_FP16_VECTOR_ARITHMETIC is an
+AArch64-only predefine that gcc never sets for AArch32 targets, so
+using it to guard the vcvt_f32_f16()-based load() would disable that
+specialization on every 32-bit ARM target unconditionally - including
+the ones that DO have the hardware conversion instruction (i.e. builds
+with -mfpu=neon-vfpv4/neon-fp16), and more importantly would leave the
+existing "plain __ARM_NEON" tinyBLAS dispatch branch further down in
+this file still unconditionally calling that now-undefined
+specialization, turning the compile error into a link error
+(undefined reference to load<float32x4_t, unsigned short>) instead of
+fixing it.
+
+vcvt_f32_f16() is a plain data conversion, always available on AArch64
+NEON, and on AArch32 available precisely when bit 1 of the
+ACLE-standard __ARM_NEON_FP bitmask is set (i.e. -mfpu=neon-vfpv4 or
+-mfpu=neon-fp16, but not plain -mfpu=neon). Guard both the load()
+specialization and the tinyBLAS dispatch branch that depends on it
+with that check, so the fp16 tinyBLAS fast path is used exactly when
+the hardware actually supports the conversion, and silently falls back
+to ggml's generic (non-tinyBLAS) F16 matmul path otherwise.
+
+Upstream-Status: Pending
+Signed-off-by: Koen Kooi <koen.kooi@oss.qualcomm.com>
+
+--- a/ggml/src/ggml-cpu/llamafile/sgemm.cpp
++++ b/ggml/src/ggml-cpu/llamafile/sgemm.cpp
+@@ -305,15 +305,19 @@ template <typename T, typename U> T load(const U *);
+ template <> inline float32x4_t load(const float *p) {
+     return vld1q_f32(p);
+ }
+-#if !defined(_MSC_VER)
+-// FIXME: this should check for __ARM_FEATURE_FP16_VECTOR_ARITHMETIC
++#if defined(__ARM_FEATURE_FP16_VECTOR_ARITHMETIC) && !defined(_MSC_VER)
+ template <> inline float16x8_t load(const ggml_fp16_t *p) {
+     return vld1q_f16((const float16_t *)p);
+ }
++#endif // __ARM_FEATURE_FP16_VECTOR_ARITHMETIC
++// vcvt_f32_f16() needs hardware fp16<->fp32 conversion support: always
++// present on AArch64 NEON, but on AArch32 only with -mfpu=neon-vfpv4/neon-fp16
++// (exposed as bit 1 of __ARM_NEON_FP); plain -mfpu=neon lacks it.
++#if (defined(__aarch64__) || (defined(__ARM_NEON_FP) && (__ARM_NEON_FP & 2))) && !defined(_MSC_VER)
+ template <> inline float32x4_t load(const ggml_fp16_t *p) {
+     return vcvt_f32_f16(vld1_f16((const float16_t *)p));
+ }
+-#endif // _MSC_VER
++#endif // __aarch64__ || (__ARM_NEON_FP & 2)
+ #endif // __ARM_NEON
+
+ #if defined(__VXE__) || defined(__VXE2__)
+@@ -3861,7 +3865,7 @@ bool llamafile_sgemm(const ggml_compute_params * params, int64_t m, int64_t n,
+                 (float *)C, ldc};
+             return tb.matmul(m, n);
+         }
+-#elif defined(__ARM_NEON) && !defined(_MSC_VER)
++#elif defined(__ARM_NEON) && (defined(__aarch64__) || (defined(__ARM_NEON_FP) && (__ARM_NEON_FP & 2))) && !defined(_MSC_VER)
+         if (Btype == GGML_TYPE_F32) {
+             tinyBLAS<4, float32x4_t, float32x4_t, ggml_fp16_t, float, float> tb{ params,
+                 k, (const ggml_fp16_t *)A, lda,
