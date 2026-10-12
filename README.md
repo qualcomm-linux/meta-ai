@@ -20,9 +20,17 @@ How to install the software itself.
 
 Describe how to use the project.
 
-## Development
+## Contributing patches
 
-How to develop new features/fixes for the software. Maybe different than "usage". Also provide details on how to contribute via a [CONTRIBUTING.md file](CONTRIBUTING.md).
+Base changes on `main` and submit patches as GitHub pull requests against `main`. Keep each pull request focused on one logical change and sign off each commit under the Developer Certificate of Origin.
+
+Before opening or updating a pull request, run:
+
+```sh
+kas-container build kas/base.yml:kas/qemuarm64.yml
+```
+
+Run additional targeted checks for the affected recipe or component. See [CONTRIBUTING.md](CONTRIBUTING.md) for complete validation, commit message, sign-off, and attribution requirements.
 
 ## Getting in Contact
 
