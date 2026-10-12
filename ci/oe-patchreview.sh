@@ -24,7 +24,7 @@ require_dir() {
 require_dir "$REPO_DIR"
 require_dir "$WORK_DIR"
 
-"$WORK_DIR/oe-core/scripts/contrib/patchreview.py" -v -b -j status.json "$REPO_DIR"
+"$WORK_DIR/openembedded-core/scripts/contrib/patchreview.py" -v -b -j status.json "$REPO_DIR"
 
 STATUS_FILE="$WORK_DIR/build/status.json"
 test -s "$STATUS_FILE"

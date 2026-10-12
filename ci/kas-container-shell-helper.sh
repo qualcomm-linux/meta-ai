@@ -21,4 +21,4 @@ fi
 SCRIPT=${SCRIPT#"$TOPDIR/"}
 KAS_CONTAINER=${KAS_CONTAINER:-$(command -v kas-container)}
 
-exec "$KAS_CONTAINER" shell "$TOPDIR/ci/base.yml" --command "/repo/$SCRIPT /repo /work"
+exec "$KAS_CONTAINER" shell "$TOPDIR/kas/base.yml" --command "/repo/$SCRIPT /repo /work"
