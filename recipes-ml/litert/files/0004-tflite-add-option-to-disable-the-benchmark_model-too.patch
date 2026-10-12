@@ -1,0 +1,47 @@
+From adefc50082a7aa41e9bfe0c43aef065a71a2b325 Mon Sep 17 00:00:00 2001
+From: Tushar Darote <tdarote@qti.qualcomm.com>
+Date: Thu, 9 Jul 2026 14:17:40 +0530
+Subject: [PATCH 4/7] tflite: add option to disable the benchmark_model tool
+ build
+
+tflite/CMakeLists.txt unconditionally add_subdirectory()s
+tools/benchmark, which builds the benchmark_model tool. That tool links
+protobuf::libprotobuf and is not part of the LiteRT runtime / Qualcomm
+NPU artifacts this build ships. It also conflicts with the benchmark_model
+target that may already be built by a separate tensorflow-lite recipe,
+causing duplicate-target errors in combined builds.
+
+Introduce a TFLITE_BUILD_BENCHMARK_TOOL option (default ON to preserve
+existing behaviour) and guard the add_subdirectory() with it. The LiteRT
+recipe passes -DTFLITE_BUILD_BENCHMARK_TOOL=OFF at configure time to
+exclude the tool without touching any other subdirectory.
+
+Upstream-Status: Submitted [https://github.com/google-ai-edge/LiteRT/pull/8575]
+Signed-off-by: Tushar Darote <tdarote@qti.qualcomm.com>
+---
+ tflite/CMakeLists.txt | 9 +++++----
+ 1 file changed, 5 insertions(+), 4 deletions(-)
+
+diff --git a/tflite/CMakeLists.txt b/tflite/CMakeLists.txt
+index 4cfd5942..d093a56a 100644
+--- a/tflite/CMakeLists.txt
++++ b/tflite/CMakeLists.txt
+@@ -851,10 +851,11 @@ add_subdirectory(${TFLITE_SOURCE_DIR}/tools/benchmark/proto)
+ 
+ # Add the tf example directory.
+ add_subdirectory(${TF_SOURCE_DIR}/core/example ${CMAKE_BINARY_DIR}/example_proto_generated)
+-
+-# The benchmark tool.
+-add_subdirectory(${TFLITE_SOURCE_DIR}/tools/benchmark)
+-
++option(TFLITE_BUILD_BENCHMARK_TOOL "Build the TFLite benchmark_model tool" ON)
++if(TFLITE_BUILD_BENCHMARK_TOOL)
++  # The benchmark tool.
++  add_subdirectory(${TFLITE_SOURCE_DIR}/tools/benchmark)
++endif()
+ # The label_image example.
+ add_subdirectory(${TFLITE_SOURCE_DIR}/examples/label_image)
+ 
+-- 
+2.43.0
+

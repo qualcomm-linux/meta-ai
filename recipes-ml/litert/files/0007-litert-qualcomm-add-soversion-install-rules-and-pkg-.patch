@@ -1,0 +1,138 @@
+From 5f7df8cff53cc988351c63801dbf2be1af9fbafe Mon Sep 17 00:00:00 2001
+From: Tushar Darote <tdarote@qti.qualcomm.com>
+Date: Thu, 9 Jul 2026 14:17:40 +0530
+Subject: [PATCH 7/7] litert/qualcomm: add soversion, install rules and
+ pkg-config for dispatch and compiler plugins
+
+The two Qualcomm vendor plugin shared libraries
+(litert_qcom_dispatch.so / litert_qcom_compiler_plugin.so) are built
+with no version information and have no CMake install() rules, so they
+are never installed by "cmake --install" and carry plain unversioned
+SONAMEs.
+
+Add VERSION / SOVERSION target properties (guarded by
+if(LITERT_MAJOR_VERSION) so the change is opt-in), CMake install()
+rules for the Runtime and Development components, and a pkg-config
+.pc.in template for each plugin, mirroring the convention already
+introduced for the LiteRT C API library in litert/c/CMakeLists.txt.
+
+Install layout:
+  * litert_qcom_dispatch.so.MAJOR.MINOR.PATCH  -> ${CMAKE_INSTALL_LIBDIR}
+  * litert_qcom_dispatch.so.MAJOR SONAME symlink
+  * litert_qcom_dispatch.so  development namelink  (Development component)
+  * litert_qcom_dispatch.pc  -> ${CMAKE_INSTALL_LIBDIR}/pkgconfig
+  * litert_qcom_compiler_plugin.so.*  (same pattern)
+  * litert_qcom_compiler_plugin.pc
+
+Upstream-Status: Submitted [https://github.com/google-ai-edge/LiteRT/pull/8571]
+Signed-off-by: Tushar Darote <tdarote@qti.qualcomm.com>
+---
+ .../vendors/qualcomm/compiler/CMakeLists.txt  | 24 +++++++++++++++++++
+ .../litert_qcom_compiler_plugin.pc.in         | 11 +++++++++
+ .../vendors/qualcomm/dispatch/CMakeLists.txt  | 24 +++++++++++++++++++
+ .../dispatch/litert_qcom_dispatch.pc.in       | 11 +++++++++
+ 4 files changed, 70 insertions(+)
+ create mode 100644 litert/vendors/qualcomm/compiler/litert_qcom_compiler_plugin.pc.in
+ create mode 100644 litert/vendors/qualcomm/dispatch/litert_qcom_dispatch.pc.in
+
+diff --git a/litert/vendors/qualcomm/compiler/CMakeLists.txt b/litert/vendors/qualcomm/compiler/CMakeLists.txt
+index 7131d569..866f7e1a 100644
+--- a/litert/vendors/qualcomm/compiler/CMakeLists.txt
++++ b/litert/vendors/qualcomm/compiler/CMakeLists.txt
+@@ -72,3 +72,27 @@ elseif(UNIX)
+     )
+ endif()
+ 
++
++if(LITERT_MAJOR_VERSION)
++    set_target_properties(qnn_compiler_plugin PROPERTIES
++        VERSION   "${LITERT_MAJOR_VERSION}.${LITERT_MINOR_VERSION}.${LITERT_PATCH_VERSION}"
++        SOVERSION "${LITERT_MAJOR_VERSION}"
++    )
++endif()
++
++install(TARGETS qnn_compiler_plugin
++    LIBRARY
++        DESTINATION ${CMAKE_INSTALL_LIBDIR}
++        COMPONENT   Runtime
++    NAMELINK_COMPONENT Development
++)
++
++configure_file(
++    ${CMAKE_CURRENT_SOURCE_DIR}/litert_qcom_compiler_plugin.pc.in
++    ${CMAKE_CURRENT_BINARY_DIR}/litert_qcom_compiler_plugin.pc
++    @ONLY
++)
++install(FILES ${CMAKE_CURRENT_BINARY_DIR}/litert_qcom_compiler_plugin.pc
++    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
++    COMPONENT   Development
++)
+diff --git a/litert/vendors/qualcomm/compiler/litert_qcom_compiler_plugin.pc.in b/litert/vendors/qualcomm/compiler/litert_qcom_compiler_plugin.pc.in
+new file mode 100644
+index 00000000..27ae40b7
+--- /dev/null
++++ b/litert/vendors/qualcomm/compiler/litert_qcom_compiler_plugin.pc.in
+@@ -0,0 +1,11 @@
++prefix=@CMAKE_INSTALL_PREFIX@
++exec_prefix=${prefix}
++libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
++includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
++
++Name: litert-qcom-compiler-plugin
++Description: LiteRT Qualcomm AOT compiler plugin
++Version: @LITERT_MAJOR_VERSION@.@LITERT_MINOR_VERSION@.@LITERT_PATCH_VERSION@
++Libs: -L${libdir} -lLiteRtCompilerPlugin_Qualcomm
++Cflags: -I${includedir}
++
+diff --git a/litert/vendors/qualcomm/dispatch/CMakeLists.txt b/litert/vendors/qualcomm/dispatch/CMakeLists.txt
+index 436806ba..f7e3d163 100644
+--- a/litert/vendors/qualcomm/dispatch/CMakeLists.txt
++++ b/litert/vendors/qualcomm/dispatch/CMakeLists.txt
+@@ -53,3 +53,27 @@ if(UNIX AND NOT APPLE)
+         "-Wl,--end-group"
+     )
+ endif()
++
++if(LITERT_MAJOR_VERSION)
++    set_target_properties(dispatch_api_qualcomm_so PROPERTIES
++        VERSION   "${LITERT_MAJOR_VERSION}.${LITERT_MINOR_VERSION}.${LITERT_PATCH_VERSION}"
++        SOVERSION "${LITERT_MAJOR_VERSION}"
++    )
++endif()
++
++install(TARGETS dispatch_api_qualcomm_so
++    LIBRARY
++        DESTINATION ${CMAKE_INSTALL_LIBDIR}
++        COMPONENT   Runtime
++    NAMELINK_COMPONENT Development
++)
++
++configure_file(
++    ${CMAKE_CURRENT_SOURCE_DIR}/litert_qcom_dispatch.pc.in
++    ${CMAKE_CURRENT_BINARY_DIR}/litert_qcom_dispatch.pc
++    @ONLY
++)
++install(FILES ${CMAKE_CURRENT_BINARY_DIR}/litert_qcom_dispatch.pc
++    DESTINATION ${CMAKE_INSTALL_LIBDIR}/pkgconfig
++    COMPONENT   Development
++)
+diff --git a/litert/vendors/qualcomm/dispatch/litert_qcom_dispatch.pc.in b/litert/vendors/qualcomm/dispatch/litert_qcom_dispatch.pc.in
+new file mode 100644
+index 00000000..0acab8fb
+--- /dev/null
++++ b/litert/vendors/qualcomm/dispatch/litert_qcom_dispatch.pc.in
+@@ -0,0 +1,11 @@
++prefix=@CMAKE_INSTALL_PREFIX@
++exec_prefix=${prefix}
++libdir=${prefix}/@CMAKE_INSTALL_LIBDIR@
++includedir=${prefix}/@CMAKE_INSTALL_INCLUDEDIR@
++
++Name: litert-qcom-dispatch
++Description: LiteRT Qualcomm dispatch plugin
++Version: @LITERT_MAJOR_VERSION@.@LITERT_MINOR_VERSION@.@LITERT_PATCH_VERSION@
++Libs: -L${libdir} -lLiteRtDispatch_Qualcomm
++Cflags: -I${includedir}
++
+-- 
+2.43.0
+

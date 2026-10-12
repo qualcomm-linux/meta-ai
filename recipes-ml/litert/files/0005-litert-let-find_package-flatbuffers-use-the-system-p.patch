@@ -1,0 +1,44 @@
+From 53109072d27f562d5b75edbd5deae16cad14b1dd Mon Sep 17 00:00:00 2001
+From: Tushar Darote <tdarote@qti.qualcomm.com>
+Date: Thu, 9 Jul 2026 14:17:40 +0530
+Subject: [PATCH 5/7] litert: let find_package(flatbuffers) use the system
+ package
+
+litert/CMakeLists.txt looks for FlatBuffers with NO_DEFAULT_PATH,
+restricting the search to the bundled TFLite build tree
+(${TFLITE_BUILD_DIR}/...). When FlatBuffers is instead provided by the
+toolchain/sysroot as a proper CMake package (flatbuffers-config.cmake
+exporting flatbuffers::flatbuffers), NO_DEFAULT_PATH prevents it from
+being found, so the code falls through to a hand-rolled IMPORTED target
+pointing at ${TFLITE_BUILD_DIR}/_deps/flatbuffers-build/libflatbuffers.a
+-- a path that does not exist in that configuration -- and the link
+fails.
+
+Drop NO_DEFAULT_PATH so the standard CMake search (CMAKE_PREFIX_PATH /
+sysroot) is also consulted. When a system FlatBuffers package is present
+its exported flatbuffers::flatbuffers target is used directly and the
+fallback IMPORTED target is skipped; when it is not, the bundled build
+tree PATHS are still searched exactly as before, so the existing
+self-contained build is unaffected.
+
+Upstream-Status: Submitted [https://github.com/google-ai-edge/LiteRT/pull/8465]
+Signed-off-by: Tushar Darote <tdarote@qti.qualcomm.com>
+---
+ litert/CMakeLists.txt | 1 -
+ 1 file changed, 1 deletion(-)
+
+diff --git a/litert/CMakeLists.txt b/litert/CMakeLists.txt
+index 0e329870..1f789c2c 100644
+--- a/litert/CMakeLists.txt
++++ b/litert/CMakeLists.txt
+@@ -222,7 +222,6 @@ find_package(flatbuffers QUIET
+       ${LITERT_FLATBUFFERS_BUILD_DIR}
+       ${LITERT_FLATBUFFERS_DIR}/CMake
+       ${CMAKE_BINARY_DIR}/flatbuffers-flatc/lib/cmake/flatbuffers
+-    NO_DEFAULT_PATH
+ )
+ 
+ if(NOT TARGET flatbuffers::flatbuffers)
+-- 
+2.43.0
+

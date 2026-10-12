@@ -1,0 +1,84 @@
+From 5b2bccf45b60341e051f1387a64debec1de63304 Mon Sep 17 00:00:00 2001
+From: Tushar Darote <tdarote@qti.qualcomm.com>
+Date: Thu, 9 Jul 2026 14:17:40 +0530
+Subject: [PATCH 2/7] litert/qualcomm/htp: log auto-detected SoC and fall back
+ to user-provided SoC info
+
+When `HtpBackend::Init()` runs on-device (aarch64), it queries QNN's
+`deviceGetPlatformInfo()` and looks up the reported `socModel` integer
+in the local SoC table. If the lookup fails the code currently falls
+back to `kSocInfos[0]` (UNKNOWN_SDM, DspArch::NONE) and the next check
+errors out with "SoC info was not configured successfully." with no
+indication of what the device actually reported.
+
+This makes triaging missing SoCs slow (silicon vendors / partners must
+add print statements and rebuild to learn the on-chip id) and also
+prevents users from providing a SoC explicitly: a SoC passed through
+`QnnManager::Create(..., soc_info)` is ignored on-device even when
+auto-detection fails.
+
+Improve both:
+
+  * Log the auto-detected on-chip SoC model id at INFO level.
+  * If auto-detection does not match any table entry, fall back to the
+    caller-provided SoC info (if any) with a clear warning.
+  * If `deviceGetPlatformInfo()` fails entirely, also fall back to the
+    caller-provided SoC info.
+  * Make the final error message actionable by mentioning that the
+    caller can provide a SoC explicitly.
+
+The host (x86) code path is unchanged.
+
+Upstream-Status: Submitted [https://github.com/google-ai-edge/LiteRT/pull/8347]
+Signed-off-by: Tushar Darote <tdarote@qti.qualcomm.com>
+---
+ .../qualcomm/core/backends/htp_backend.cc     | 24 +++++++++++++++++--
+ 1 file changed, 22 insertions(+), 2 deletions(-)
+
+diff --git a/litert/vendors/qualcomm/core/backends/htp_backend.cc b/litert/vendors/qualcomm/core/backends/htp_backend.cc
+index 6dd4149a..c5933fa6 100644
+--- a/litert/vendors/qualcomm/core/backends/htp_backend.cc
++++ b/litert/vendors/qualcomm/core/backends/htp_backend.cc
+@@ -409,9 +409,27 @@ bool HtpBackend::Init(const Options& options, std::optional<SocInfo> soc_info) {
+       auto soc_model =
+           device_platform_info->v1.hwDevices->v1.deviceInfoExtension
+               ->onChipDevice.socModel;
++      QNN_LOG_INFO("Device reported on-chip SoC model id: %u",
++                   static_cast<uint32_t>(soc_model));
+       auto soc_info_online =
+           FindSocInfo(static_cast<SnapdragonModel>(soc_model));
+-      soc_info_ = soc_info_online.value_or(kSocInfos[0]);
++      if (soc_info_online.has_value()) {
++        soc_info_ = *soc_info_online;
++      } else if (soc_info.has_value()) {
++        QNN_LOG_WARNING(
++            "Device reported SoC model id %u is not in the SoC table. "
++            "Falling back to caller-provided SoC info. SoC name: %s.",
++            static_cast<uint32_t>(soc_model), soc_info->soc_name);
++        soc_info_ = *soc_info;
++      } else {
++        soc_info_ = kSocInfos[0];
++      }
++    } else if (soc_info.has_value()) {
++      QNN_LOG_WARNING(
++          "Could not query device platform info. Falling back to "
++          "caller-provided SoC info. SoC name: %s.",
++          soc_info->soc_name);
++      soc_info_ = *soc_info;
+     }
+ #if defined(_WIN32) && defined(_M_ARM64)
+     if (soc_info_.dsp_arch == DspArch::NONE) {
+@@ -424,7 +442,9 @@ bool HtpBackend::Init(const Options& options, std::optional<SocInfo> soc_info) {
+ #endif
+   }
+   if (soc_info_.dsp_arch == DspArch::NONE) {
+-    QNN_LOG_ERROR("SoC info was not configured successfully.")
++    QNN_LOG_ERROR(
++        "SoC info was not configured successfully. The on-device SoC could "
++        "not be auto-detected and no caller-provided SoC info was given.");
+     return false;
+   }
+   QNN_LOG_INFO("Initializing QNN backend for SoC model: %s",
+-- 
+2.43.0
+
