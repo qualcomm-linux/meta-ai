@@ -1,0 +1,38 @@
+From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From: Koen Kooi <koen.kooi@oss.qualcomm.com>
+Date: Thu, 24 Sep 2026 20:10:55 +0200
+Subject: [PATCH] test: drop always-false size_t overflow check in
+ MLValueToTensorProto
+
+MLValueToTensorProto() takes the element count as a size_t and then
+checks whether it exceeds SIZE_MAX. A size_t can never exceed SIZE_MAX,
+so the check is dead code on every target. On targets where size_t is
+32 bits wide, GCC can prove it and reports
+"comparison is always false due to limited range of data type"
+[-Wtype-limits]; with onnxruntime's COMPILE_WARNING_AS_ERROR that breaks
+the onnx_test_runner build for 32-bit Arm.
+
+The similar check in the tensor-loading path above it compares an
+int64_t element count and is a real overflow guard on 32-bit targets,
+so it stays.
+
+Upstream-Status: Pending
+Signed-off-by: Koen Kooi <koen.kooi@oss.qualcomm.com>
+---
+ onnxruntime/test/onnx/tensorprotoutils.cc | 3 ---
+ 1 file changed, 3 deletions(-)
+
+diff --git a/onnxruntime/test/onnx/tensorprotoutils.cc b/onnxruntime/test/onnx/tensorprotoutils.cc
+index d6b10be..5f70ab1 100644
+--- a/onnxruntime/test/onnx/tensorprotoutils.cc
++++ b/onnxruntime/test/onnx/tensorprotoutils.cc
+@@ -758,9 +758,6 @@ Status MLValueToTensorProto(Ort::Value& value, onnx::TensorProto& tensor_proto)
+     tensor_proto.add_dims(out_shape[j]);
+   }
+   size_t tensor_size = tensor_info.GetElementCount();
+-  if (static_cast<uint64_t>(tensor_size) > SIZE_MAX) {
+-    return Status(common::ONNXRUNTIME, common::INVALID_ARGUMENT, "Size overflow");
+-  }
+ 
+   ONNXTensorElementDataType tensor_elem_data_type = tensor_info.GetElementType();
+   int tensor_elem_bytes;
