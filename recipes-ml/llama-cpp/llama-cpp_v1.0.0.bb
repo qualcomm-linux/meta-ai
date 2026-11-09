@@ -4,7 +4,7 @@ HOMEPAGE = "https://github.com/ggml-org/llama.cpp"
 LICENSE = "MIT"
 LIC_FILES_CHKSUM = "file://LICENSE;md5=223b26b3c1143120c87e2b13111d3e99"
 
-SRCREV = "550d684bd13132d4af744cee64c1a3acb0ceaf09"
+SRCREV = "a6d1a74dbebce3a16f4f2ceddbf38c21a08d8674"
 SRC_URI = "git://github.com/ggml-org/llama.cpp.git;protocol=https;tag=${PV};nobranch=1 \
     file://0001-sgemm-guard-ARM-NEON-fp16-load-on-FP16_VECTOR_ARITH.patch \
 "
@@ -23,3 +23,6 @@ EXTRA_OECMAKE += " \
     -DLLAMA_BUILD_WEBUI=OFF \
     -DLLAMA_TOOLS_INSTALL=ON \
 "
+
+PACKAGES = "${PN}-src ${PN}-dbg ${PN}-staticdev ${PACKAGE_BEFORE_PN} ${PN} ${PN}-dev ${PN}-doc ${PN}-locale"
+FILES:${PN} += "${libdir}/libllama-*-impl.so"
