@@ -1,4 +1,4 @@
-From 43585be94681b15236503a7f3b7e64c1c9997baa Mon Sep 17 00:00:00 2001
+From 4d3b3b11470a06800d1714909c09552151fa457d Mon Sep 17 00:00:00 2001
 From: Pratik Pachange <ppachang@qti.qualcomm.com>
 Date: Wed, 23 Sep 2026 16:02:55 +0530
 Subject: [PATCH] cmake: install onnxruntime_perf_test binary
@@ -17,10 +17,10 @@ Signed-off-by: Pratik Pachange <ppachang@qti.qualcomm.com>
  1 file changed, 3 insertions(+)
 
 diff --git a/cmake/onnxruntime_unittests.cmake b/cmake/onnxruntime_unittests.cmake
-index 7f361aa6392..e7375f0eb59 100644
+index e500645f22..9c836d29c2 100644
 --- a/cmake/onnxruntime_unittests.cmake
 +++ b/cmake/onnxruntime_unittests.cmake
-@@ -1545,6 +1545,9 @@ if (NOT onnxruntime_ENABLE_TRAINING_TORCH_INTEROP)
+@@ -1945,6 +1945,9 @@ if (NOT onnxruntime_ENABLE_TRAINING_TORCH_INTEROP)
      endif()
      set_target_properties(onnxruntime_perf_test PROPERTIES FOLDER "ONNXRuntimeTest")
  
@@ -29,7 +29,4 @@ index 7f361aa6392..e7375f0eb59 100644
 +
  endif()
  
- 
--- 
-2.34.1
-
+   # Build ep_weight_sharing_ctx_gen for all supported EPs (QNN, TensorRT, OpenVINO, VitisAI)
