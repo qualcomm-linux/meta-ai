@@ -41,7 +41,7 @@ SRC_URI = "gitsm://github.com/microsoft/onnxruntime.git;protocol=https;branch=re
 "
 
 SRCREV_FORMAT = "ort_date_mp11_pytorch_cpuinfo_safeint_flatbuffers_onnx_eigen3_gsl"
-SRCREV_ort              = "8c546c37b43caaca1fa25db430dab94b901cf277"
+SRCREV_ort              = "2e2543fbe9fae542f921d47a72d21d5a4ef0b710"
 SRCREV_date             = "6e921e1b1d21e84a5c82416ba7ecd98e33a436d0"
 SRCREV_mp11             = "0a0b5fb001ce0233ae3a6f99d849c0649e5a7361"
 SRCREV_pytorch_cpuinfo  = "403d652dca4c1046e8145950b1c0997a9f748b57"
