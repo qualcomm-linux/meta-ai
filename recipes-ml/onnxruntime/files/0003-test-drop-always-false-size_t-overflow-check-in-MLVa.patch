@@ -1,4 +1,4 @@
-From 0000000000000000000000000000000000000000 Mon Sep 17 00:00:00 2001
+From 4b79adc0f6db92b98b96499a82caf0620ba0f4aa Mon Sep 17 00:00:00 2001
 From: Koen Kooi <koen.kooi@oss.qualcomm.com>
 Date: Thu, 24 Sep 2026 20:10:55 +0200
 Subject: [PATCH] test: drop always-false size_t overflow check in
@@ -23,10 +23,10 @@ Signed-off-by: Koen Kooi <koen.kooi@oss.qualcomm.com>
  1 file changed, 3 deletions(-)
 
 diff --git a/onnxruntime/test/onnx/tensorprotoutils.cc b/onnxruntime/test/onnx/tensorprotoutils.cc
-index d6b10be..5f70ab1 100644
+index 5c8d8f9fd8..d677d57e81 100644
 --- a/onnxruntime/test/onnx/tensorprotoutils.cc
 +++ b/onnxruntime/test/onnx/tensorprotoutils.cc
-@@ -758,9 +758,6 @@ Status MLValueToTensorProto(Ort::Value& value, onnx::TensorProto& tensor_proto)
+@@ -761,9 +761,6 @@ Status MLValueToTensorProto(Ort::Value& value, onnx::TensorProto& tensor_proto)
      tensor_proto.add_dims(out_shape[j]);
    }
    size_t tensor_size = tensor_info.GetElementCount();
