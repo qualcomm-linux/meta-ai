@@ -26,7 +26,7 @@ DEPENDS = " \
 # because onnxruntime's Microsoft.GSL find_package request uses
 # SameMajorVersion compatibility, and meta-openembedded's microsoft-gsl
 # recipe provides a major version 5 release that it rejects.
-SRC_URI = "gitsm://github.com/microsoft/onnxruntime.git;protocol=https;branch=rel-${PV};name=ort \
+SRC_URI = "gitsm://github.com/Liquid4All/onnxruntime.git;protocol=https;branch=rel-${PV};name=ort \
     file://0001-cmake-fix-GCC-16-build.patch \
     file://0002-cmake-install-onnxruntime_perf_test-binary.patch \
     file://0003-test-drop-always-false-size_t-overflow-check-in-MLVa.patch \
